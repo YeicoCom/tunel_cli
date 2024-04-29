@@ -63,6 +63,7 @@ check_deps() {
     require sed
     require wget
     require sudo
+    require unzip
     require wg-quick
     [ -f $YEICO_LINK ] || install_link
     no_output sudo ls
