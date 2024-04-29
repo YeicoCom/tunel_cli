@@ -212,6 +212,8 @@ start_client() {
     [ "$RESULT" != "!invalid" ] || panic $RESULT
     source $DIR/client.props
     echo enabled $STAMP > $DIR/client.link
+    #nothing is killing the current client on a replacement
+    sudo systemctl restart tunel_client.service
     echo ok
 }
 
