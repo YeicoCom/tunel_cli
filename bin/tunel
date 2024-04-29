@@ -299,7 +299,6 @@ case $ACTION in
     ;;
     start_server|stop_server)
     check_deps
-    panic_if_no_session
     $@
     ;;
     share_server|unshare_server)
@@ -314,7 +313,6 @@ case $ACTION in
     ;;
     start_client|stop_client)
     check_deps
-    panic_if_no_session
     $@
     ;;
     *)
