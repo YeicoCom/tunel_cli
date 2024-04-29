@@ -40,6 +40,8 @@ help() {
     echo "$this delete_server <server_id> <host_uuid>"
     echo "$this start_server"
     echo "$this stop_server"
+    echo "$this share_server <server_id> <user_email>"
+    echo "$this unshare_server <share_id>"
     exit 1
 }
 
@@ -156,15 +158,12 @@ logout() {
 
 list_servers() {
     no_error curl $API/list/$EMAIL/$TOKEN
-    echo ok
 }
 
 list_shares() {
     panic_if_arg_empty server_id $1
     SERID=${1:-0}
-    RESULT=$(no_error curl $API/list/$EMAIL/$TOKEN/$SERID)
-    [ "$RESULT" != "!invalid" ] || panic $RESULT
-    echo ok
+    no_error curl $API/list/$EMAIL/$TOKEN/$SERID
 }
 
 add_server() {
@@ -218,6 +217,20 @@ stop_server() {
     echo "ok"
 }
 
+share_server() {
+    panic_if_arg_empty server_id $1
+    panic_if_arg_empty user_email $2
+    SERID=$1
+    USER=$2
+    no_error curl $API/share/$EMAIL/$TOKEN/$SERID/$USER
+}
+
+unshare_server() {
+    panic_if_arg_empty share_id $1
+    SHAID=$1
+    no_error curl $API/unshare/$EMAIL/$TOKEN/$SHAID
+}
+
 ACTION=$1
 
 case $ACTION in
@@ -240,6 +253,21 @@ case $ACTION in
     $@
     ;;
     start_server|stop_server)
+    check_deps
+    panic_if_no_session
+    $@
+    ;;
+    share_server|unshare_server)
+    check_deps
+    panic_if_no_session
+    $@
+    ;;
+    add_client|delete_client)
+    check_deps
+    panic_if_no_session
+    $@
+    ;;
+    start_client|stop_client)
     check_deps
     panic_if_no_session
     $@

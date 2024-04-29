@@ -19,12 +19,14 @@ bin/tunel update # self update asdf package
 bin/tunel sessions
 bin/tunel login <email>
 bin/tunel logout <email>
-bin/tunel list_severs
+bin/tunel list_servers
 bin/tunel list_shares <server_id>
-bin/tunel add_sever
+bin/tunel add_server
 #use @ for empty name/network
-bin/tunel update_sever <server_id> <name> <network>
-bin/tunel delete_sever <server_id> <server_suuid>
-bin/tunel start_sever
-bin/tunel stop_sever
+bin/tunel update_server <server_id> <name> <network>
+bin/tunel delete_server <server_id> <host_uuid>
+bin/tunel start_server
+bin/tunel stop_server
+bin/tunel share_server <server_id> <user_email>
+bin/tunel unshare_server <share_id>
 ```
