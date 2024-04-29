@@ -52,7 +52,7 @@ help() {
 require() {
     CMD=$1
     shift
-    no_output whereis $CMD || panic "$CMD is required $@"
+    no_output which $CMD || panic "$CMD is required $@"
 }
 
 check_deps() {
