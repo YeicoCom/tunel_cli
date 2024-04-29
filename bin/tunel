@@ -6,7 +6,7 @@ cd $SCRIPT_PATH
 
 API="https://dash.tunel.mx/api"
 DIR=~/.tunelmx
-source tmxe
+source tunel_environ
 
 panic() { 
     >&2 echo Panic: $@
@@ -29,23 +29,20 @@ help() {
     this=$(basename $0)
     echo "Usage: $this action ...args"
     echo "$this help"
-    echo "$this sessions"
+    echo "$this setup"
     echo "$this login <email>"
-    echo "$this logout <email>"
+    echo "$this logout"
     echo "$this list_servers"
-    echo "$this list_shares <server_id>"
     echo "$this add_server"
     echo "#use @ for empty name/network"
-    echo "$this update_server <server_id> <name> <network>"
-    echo "$this delete_server <server_id> <host_uuid>"
-    echo "$this start_server"
-    echo "$this stop_server"
-    echo "$this share_server <server_id> <user_email>"
-    echo "$this unshare_server <share_id>"
+    echo "$this update_server <name> <network>"
+    echo "$this delete_server"
+    echo "$this status_server"
+    echo "$this restart_server"
     echo "$this add_client <server_id>"
-    echo "$this delete_client <server_id>"
-    echo "$this start_client"
-    echo "$this stop_client"
+    echo "$this delete_client"
+    echo "$this status_client"
+    echo "$this restart_client"
     exit 1
 }
 
@@ -56,8 +53,7 @@ require() {
 }
 
 check_deps() {
-    #also requires passwordless sudo
-    no_output mkdir -p $DIR/sessions
+    no_output mkdir -p $DIR
     require asdf
     require curl   
     require sed
@@ -65,7 +61,11 @@ check_deps() {
     require sudo
     require unzip
     require wg-quick
+    require inotifywait
+    require uuidgen
+    require uname
     [ -f $YEICO_LINK ] || install_link
+    #requires passwordless sudo
     no_output sudo ls
 }
 
@@ -91,19 +91,6 @@ kill_pid_file() {
     fi
 }
 
-check_default_session() {
-    EMAIL=$(no_error cat $DIR/email)
-    [ -f $DIR/sessions/$EMAIL ] || return 1
-    check_session $EMAIL
-}
-
-panic_if_no_session() {
-    check_default_session || panic Not logged in
-    EMAIL=$(cat $DIR/email)
-    TOKEN=$(cat $DIR/sessions/$EMAIL)
-    echo Current session: $EMAIL
-}
-
 panic_if_arg_empty() {
     NAME=$1
     VALUE=$2
@@ -111,13 +98,17 @@ panic_if_arg_empty() {
 }
 
 check_session() {
-    EMAIL=$1
-    FILE=$DIR/sessions/$EMAIL
-    [ -f $FILE ] || return 1
-    TOKEN=$(cat $FILE)
-    RESULT=$(no_error curl $API/session/$EMAIL/$TOKEN)
-    [ "$RESULT" == "ok" ] || return 1
-    echo $EMAIL > $DIR/email
+    [ -f $DIR/email ] || return 1
+    [ -f $DIR/session ] || return 2
+    EMAIL=$(cat $DIR/email)
+    SESSION=$(cat $DIR/session)
+    RESULT=$(no_error curl $API/session/$EMAIL/$SESSION)
+    [ "$RESULT" == "ok" ] || return 3
+}
+
+panic_if_no_session() {
+    check_session || panic Not logged in
+    echo Current session: $EMAIL
 }
 
 login_otac() {
@@ -126,156 +117,118 @@ login_otac() {
     echo "A 6 digit access code has been sent to your inbox"
     echo -n "Access code: "
     read CODE
-    TOKEN=$(no_error curl $API/login/$EMAIL/$TOKEN/$CODE)
-    FILE=$DIR/sessions/$EMAIL
-    echo $TOKEN > $FILE
+    SESSION=$(no_error curl $API/login/$EMAIL/$TOKEN/$CODE)
+    echo $EMAIL > $DIR/email
+    echo $SESSION > $DIR/session
 }
 
-sessions() {
-    EMAIL=$(no_error cat $DIR/email)
-    for s in $(ls $DIR/sessions/*); do
-        s=$(basename $s)
-        [ "$EMAIL" == "$s" ] && echo -n '[x] '
-        [ "$EMAIL" == "$s" ] || echo -n '[ ] '
-        echo $s
-    done
+setup() {
+    [ -f $DIR/host.uuid ] || uuidgen > $DIR/host.uuid
+    uname -mrs > $DIR/host.id
+    cp tunel_environ $DIR/
+    cp tunel_client tunel_client.service $DIR/
+    cp tunel_server tunel_server.service $DIR/
+    sed -i.bak s,HOME=\$HOME,HOME=$HOME, $DIR/tunel_environ
+    sed -i.bak s,\$HOME,$HOME, $DIR/tunel_client.service
+    sed -i.bak s,\$HOME,$HOME, $DIR/tunel_server.service
+    sudo ln -sf $DIR/tunel_client.service /lib/systemd/system/
+    sudo ln -sf $DIR/tunel_server.service /lib/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl restart tunel_client.service
+    sudo systemctl restart tunel_server.service
     echo "ok"
 }
 
 login() {
     panic_if_arg_empty email $1
     EMAIL=$1
-    check_session $EMAIL || login_otac $EMAIL
-    check_session $EMAIL || panic Login failed
+    [ -f $DIR/email ] && [ "$EMAIL" != "$(cat $DIR/email)" ] && panic Logout first
+    check_session || login_otac $EMAIL
+    check_session || panic Login failed
     echo Login success
 }
 
-logout() {
-    panic_if_arg_empty email $1
-    EMAIL=$1
-    FILE=$DIR/sessions/$EMAIL
-    [ -f $FILE ] || panic Not logged in
-    TOKEN=$(cat $FILE)
-    RESULT=$(no_error curl $API/logout/$TOKEN)
+logout() {    
+    [ -f $DIR/session ] || panic Not logged in
+    SESSION=$(cat $DIR/session)
+    RESULT=$(no_error curl $API/logout/$SESSION)
     [ "$RESULT" == "ok" ] || panic Not logged in
-    no_output rm -fr $FILE
+    no_output rm -fr $DIR/email
+    no_output rm -fr $DIR/session
     echo Logout success
 }
 
 list_servers() {
-    no_error curl $API/list/$EMAIL/$TOKEN
-}
-
-list_shares() {
-    panic_if_arg_empty server_id $1
-    SERID=${1:-0}
-    no_error curl $API/list/$EMAIL/$TOKEN/$SERID
+    no_error curl $API/list/$EMAIL/$SESSION
 }
 
 add_server() {
-    FOLDER=$DIR/server
-    [ -f $FOLDER/host.uuid ] && panic Found server at $FOLDER
-    no_output mkdir -p $FOLDER
-    FILE=$FOLDER/server.props
-    no_error curl $API/add/$EMAIL/$TOKEN > $FILE
-    source $FILE
-    sed -i.bak '/HUUID/d' $FILE
-    echo $HUUID > $FOLDER/host.uuid
-    update_server $SERID $(hostname) @
+    [ -f $DIR/host.uuid ] || panic Setup first
+    HUUID=$(cat $DIR/host.uuid)
+    no_error curl $API/add/$EMAIL/$SESSION/$HUUID > $DIR/server.props
+    RESULT=$(cat $DIR/server.props)
+    [ "$RESULT" != "!invalid" ] || panic $RESULT
+    source $DIR/server.props
+    echo enabled $STAMP > $DIR/server.link
+    update_server @ @
 }
 
 update_server() {
-    panic_if_arg_empty server_id $1
-    panic_if_arg_empty name $2
-    panic_if_arg_empty network $3
-    SERID=${1:-0}
-    NAME=${2:-@}
-    NETWORK=${3:-@}
-    no_error curl $API/update/$EMAIL/$TOKEN/$SERID/$NAME/$NETWORK
+    [ -f $DIR/server.props ] || panic Server not found
+    source $DIR/server.props
+    EMAIL=$(cat $DIR/email) #use logged user
+    panic_if_arg_empty name $1
+    panic_if_arg_empty network $2
+    NAME=${1:-@}
+    NETWORK=${2:-@}
+    [ "$NAME" == "@" ] && NAME=$(hostname)
+    no_error curl $API/update/$EMAIL/$SESSION/$SERID/$NAME/$NETWORK
 }
 
 delete_server() {
-    panic_if_arg_empty server_id $1
-    panic_if_arg_empty host_uuid $2
-    SERID=${1:-0}
-    SUUID=${2:-SUUID}
-    no_error curl $API/delete/$EMAIL/$TOKEN/$SERID/$SUUID  
+    [ -f $DIR/server.props ] || panic Server not found
+    source $DIR/server.props
+    EMAIL=$(cat $DIR/email) #use logged user
+    HUUID=$(cat $DIR/host.uuid)
+    no_output rm -fr $DIR/server.link
+    no_error curl $API/delete/$EMAIL/$SESSION/$SERID/$HUUID  
 }
 
-start_server() {
-    FOLDER=$DIR/server
-    [ -d $FOLDER ] || panic Local server not found $SERID
-    [ -f $FOLDER/server.props ] || panic Local server not found $SERID
-    [ -f $FOLDER/host.uuid ] || panic Local server not found $SERID
-    [ -f $FOLDER/server.pid ] && kill_pid_file $FOLDER/server.pid
-    cp tmxe $FOLDER/
-    cp tmxs $FOLDER/
-    sed -i.bak s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
-    daemonize $FOLDER/tmxs
-    echo "ok"
+status_server() {
+    sudo systemctl status tunel_server.service
 }
 
-stop_server() {
-    FOLDER=$DIR/server
-    [ -d $FOLDER ] || panic Local server not found $SERID
-    [ -f $FOLDER/server.pid ] && kill_pid_file $FOLDER/server.pid
-    no_output sudo wg-quick down $FOLDER/server_tmx.conf || true
-    echo "ok"
-}
-
-share_server() {
-    panic_if_arg_empty server_id $1
-    panic_if_arg_empty user_email $2
-    SERID=$1
-    USER=$2
-    no_error curl $API/share/$EMAIL/$TOKEN/$SERID/$USER
-}
-
-unshare_server() {
-    panic_if_arg_empty share_id $1
-    SHAID=$1
-    no_error curl $API/unshare/$EMAIL/$TOKEN/$SHAID
+restart_server() {
+    sudo systemctl restart tunel_server.service
 }
 
 add_client() {
+    [ -f $DIR/host.uuid ] || panic Setup first
+    HUUID=$(cat $DIR/host.uuid)
     panic_if_arg_empty server_id $1
     SHAID=$1
-    FOLDER=$DIR/client
-    [ -f $FOLDER/host.uuid ] && panic Found client at $FOLDER
-    no_output mkdir -p $FOLDER
-    FILE=$FOLDER/client.props
-    no_error curl $API/start/$EMAIL/$TOKEN/$SHAID > $FILE
-    source $FILE
-    sed -i.bak '/HUUID/d' $FILE
-    echo $HUUID > $FOLDER/host.uuid
+    no_error curl $API/start/$EMAIL/$SESSION/$SHAID > $DIR/client.props
+    RESULT=$(cat $DIR/client.props)
+    [ "$RESULT" != "!invalid" ] || panic $RESULT
+    source $DIR/client.props
+    echo enabled $STAMP > $DIR/client.link
     echo ok
 }
 
 delete_client() {
-    panic_if_arg_empty server_id $1
-    SHAID=$1
-    no_error curl $API/stop/$EMAIL/$TOKEN/$SHAID
+    [ -f $DIR/client.props ] || panic Client not found
+    source $DIR/client.props
+    EMAIL=$(cat $DIR/email) #use logged user
+    no_output rm -fr $DIR/client.link
+    no_error curl $API/stop/$EMAIL/$SESSION/$SERID
 }
 
-start_client() {
-    FOLDER=$DIR/client
-    [ -d $FOLDER ] || panic Local client not found $SERID
-    [ -f $FOLDER/client.props ] || panic Local client not found $SERID
-    [ -f $FOLDER/host.uuid ] || panic Local client not found $SERID
-    [ -f $FOLDER/client.pid ] && kill_pid_file $FOLDER/client.pid
-    cp tmxe $FOLDER/
-    cp tmxc $FOLDER/
-    sed -i.bak s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
-    daemonize $FOLDER/tmxc
-    echo "ok"
+status_client() {
+    sudo systemctl status tunel_client.service
 }
 
-stop_client() {
-    FOLDER=$DIR/client
-    [ -d $FOLDER ] || panic Local client not found $SERID
-    [ -f $FOLDER/client.pid ] && kill_pid_file $FOLDER/client.pid
-    no_output sudo wg-quick down $FOLDER/client_tmx.conf || true
-    echo "ok"
+restart_client() {
+    sudo systemctl restart tunel_client.service
 }
 
 ACTION=$1
@@ -287,36 +240,29 @@ case $ACTION in
     echo asdf uninstall tunel_cli main
     echo asdf install tunel_cli main
     ;;
-    sessions|login|logout)
+    setup)
     check_deps
     $@
     ;;
-    list_servers|list_shares)
-    check_deps
+    login|logout)
+    $@
+    ;;
+    list_servers)
     panic_if_no_session
     $@
     ;;
     add_server|update_server|delete_server)
-    check_deps
-    panic_if_no_session
-    $@
-    ;;
-    start_server|stop_server)
-    check_deps
-    $@
-    ;;
-    share_server|unshare_server)
-    check_deps
     panic_if_no_session
     $@
     ;;
     add_client|delete_client)
-    check_deps
     panic_if_no_session
     $@
     ;;
-    start_client|stop_client)
-    check_deps
+    status_server|status_client)
+    $@
+    ;;
+    restart_server|restart_client)
     $@
     ;;
     *)

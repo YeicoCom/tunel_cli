@@ -1,0 +1,8 @@
+[Unit]
+Description=TunelMxClient
+
+[Service]
+ExecStart=$HOME/.tunelmx/tunel_client
+
+[Install]
+WantedBy=multi-user.target

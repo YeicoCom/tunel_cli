@@ -20,21 +20,18 @@ asdf global tunel_cli main
 bin/tunel help # show usage
 bin/tunel update # self update asdf package
 
-bin/tunel sessions
+bin/tunel setup
 bin/tunel login <email>
-bin/tunel logout <email>
+bin/tunel logout
 bin/tunel list_servers
-bin/tunel list_shares <server_id>
 bin/tunel add_server
 #use @ for empty name/network
-bin/tunel update_server <server_id> <name> <network>
-bin/tunel delete_server <server_id> <host_uuid>
-bin/tunel start_server
-bin/tunel stop_server
-bin/tunel share_server <server_id> <user_email>
-bin/tunel unshare_server <share_id>
+bin/tunel update_server <name> <network>
+bin/tunel delete_server
+bin/tunel status_server
+bin/tunel restart_server
 bin/tunel add_client <server_id>
-bin/tunel delete_client <server_id>
-bin/tunel start_client
-bin/tunel stop_client
+bin/tunel delete_client
+bin/tunel status_client
+bin/tunel restart_client
 ```
