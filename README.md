@@ -19,6 +19,7 @@ bin/tunel update # self update asdf package
 bin/tunel sessions
 bin/tunel login <email>
 bin/tunel logout <email>
-
+bin/tunel list_severs
+bin/tunel list_shares <server_id>
 
 ```

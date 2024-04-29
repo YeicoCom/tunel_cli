@@ -23,6 +23,8 @@ help() {
     echo "$this sessions"
     echo "$this login <email>"
     echo "$this logout <email>"
+    echo "$this list_servers"
+    echo "$this list_shares <server_id>"
     exit 1
 }
 
@@ -39,6 +41,18 @@ check_deps() {
     no_output mkdir -p $DIR/sessions
     require asdf
     require curl   
+}
+
+check_default_session() {
+    EMAIL=$(no_error cat $DIR/email)
+    [ -f $DIR/sessions/$EMAIL ] || return 1
+    check_session $EMAIL
+}
+
+panic_if_no_session() {
+    check_default_session || panic Not logged in
+    EMAIL=$(cat $DIR/email)
+    TOKEN=$(cat $DIR/sessions/$EMAIL)
 }
 
 check_session() {
@@ -90,6 +104,17 @@ logout() {
     echo Logout success
 }
 
+list_servers() {
+    echo Current session: $EMAIL
+    curl $API/list/$EMAIL/$TOKEN
+}
+
+list_shares() {
+    SERID=${1:-0}
+    echo Current session: $EMAIL
+    curl $API/list/$EMAIL/$TOKEN/$SERID
+}
+
 ACTION=$1
 
 case $ACTION in
@@ -99,6 +124,11 @@ case $ACTION in
     ;;
     sessions|login|logout)
     check_deps
+    $@
+    ;;
+    list_servers|list_shares)
+    check_deps
+    panic_if_no_session
     $@
     ;;
     *)
