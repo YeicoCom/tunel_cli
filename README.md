@@ -29,4 +29,8 @@ bin/tunel start_server
 bin/tunel stop_server
 bin/tunel share_server <server_id> <user_email>
 bin/tunel unshare_server <share_id>
+bin/tunel add_client <server_id>
+bin/tunel delete_client <server_id>
+bin/tunel start_client
+bin/tunel stop_client
 ```

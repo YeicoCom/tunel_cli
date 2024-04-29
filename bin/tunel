@@ -42,6 +42,10 @@ help() {
     echo "$this stop_server"
     echo "$this share_server <server_id> <user_email>"
     echo "$this unshare_server <share_id>"
+    echo "$this add_client <server_id>"
+    echo "$this delete_client <server_id>"
+    echo "$this start_client"
+    echo "$this stop_client"
     exit 1
 }
 
@@ -168,7 +172,7 @@ list_shares() {
 
 add_server() {
     FOLDER=$DIR/server
-    [ -d $FOLDER ] && panic Found server at $FOLDER
+    [ -f $FOLDER/host.uuid ] && panic Found server at $FOLDER
     no_output mkdir -p $FOLDER
     FILE=$FOLDER/server.props
     no_error curl $API/add/$EMAIL/$TOKEN > $FILE
@@ -229,6 +233,47 @@ unshare_server() {
     panic_if_arg_empty share_id $1
     SHAID=$1
     no_error curl $API/unshare/$EMAIL/$TOKEN/$SHAID
+}
+
+add_client() {
+    panic_if_arg_empty server_id $1
+    SHAID=$1
+    FOLDER=$DIR/client
+    [ -f $FOLDER/host.uuid ] && panic Found client at $FOLDER
+    no_output mkdir -p $FOLDER
+    FILE=$FOLDER/client.props
+    no_error curl $API/start/$EMAIL/$TOKEN/$SHAID > $FILE
+    source $FILE
+    sed -i '/HUUID/d' $FILE
+    echo $HUUID > $FOLDER/host.uuid
+    echo ok
+}
+
+delete_client() {
+    panic_if_arg_empty server_id $1
+    SHAID=$1
+    no_error curl $API/stop/$EMAIL/$TOKEN/$SHAID
+}
+
+start_client() {
+    FOLDER=$DIR/client
+    [ -d $FOLDER ] || panic Local client not found $SERID
+    [ -f $FOLDER/client.props ] || panic Local client not found $SERID
+    [ -f $FOLDER/host.uuid ] || panic Local client not found $SERID
+    [ -f $FOLDER/client.pid ] && kill_pid_file $FOLDER/client.pid
+    cp tmxe $FOLDER/
+    cp tmxc $FOLDER/
+    sed -i s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
+    daemonize $FOLDER/tmxc
+    echo "ok"
+}
+
+stop_client() {
+    FOLDER=$DIR/client
+    [ -d $FOLDER ] || panic Local client not found $SERID
+    [ -f $FOLDER/client.pid ] && kill_pid_file $FOLDER/client.pid
+    no_output sudo wg-quick down $FOLDER/client_tmx.conf || true
+    echo "ok"
 }
 
 ACTION=$1
