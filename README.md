@@ -13,6 +13,10 @@ asdf local tunel_cli main
 asdf local tunel_cli <commit-or-tag-or-release>
 asdf plugin remove tunel_cli
 
+asdf plugin add tunel_cli https://github.com/YeicoCom/tunel_asdf.git
+asdf install tunel_cli main
+asdf global tunel_cli main
+
 bin/tunel help # show usage
 bin/tunel update # self update asdf package
 

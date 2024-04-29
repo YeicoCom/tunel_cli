@@ -280,8 +280,10 @@ ACTION=$1
 
 case $ACTION in
     update)
-    asdf uninstall tunel_cli main
-    asdf install tunel_cli main
+    this=$(basename $0)
+    echo '#' $this update '|' bash
+    echo asdf uninstall tunel_cli main
+    echo asdf install tunel_cli main
     ;;
     sessions|login|logout)
     check_deps
