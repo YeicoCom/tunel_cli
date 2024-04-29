@@ -139,6 +139,7 @@ sessions() {
         [ "$EMAIL" == "$s" ] || echo -n '[ ] '
         echo $s
     done
+    echo "ok"
 }
 
 login() {
