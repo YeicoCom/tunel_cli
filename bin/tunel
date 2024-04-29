@@ -190,7 +190,7 @@ delete_server() {
     source $DIR/server.props
     EMAIL=$(cat $DIR/email) #use logged user
     HUUID=$(cat $DIR/host.uuid)
-    no_output rm -fr $DIR/server.link
+    #no_output rm -fr $DIR/server.link #wait for reset
     no_error curl $API/delete/$EMAIL/$SESSION/$SERID/$HUUID  
 }
 
@@ -219,7 +219,7 @@ delete_client() {
     [ -f $DIR/client.props ] || panic Client not found
     source $DIR/client.props
     EMAIL=$(cat $DIR/email) #use logged user
-    no_output rm -fr $DIR/client.link
+    #no_output rm -fr $DIR/client.link #wait for reset
     no_error curl $API/stop/$EMAIL/$SESSION/$SERID
 }
 
