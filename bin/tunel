@@ -180,7 +180,7 @@ add_server() {
     source $FILE
     sed -i.bak '/HUUID/d' $FILE
     echo $HUUID > $FOLDER/host.uuid
-    echo ok
+    update_server $SERID $(hostname) @
 }
 
 update_server() {
