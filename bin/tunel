@@ -123,8 +123,8 @@ check_session() {
 login_otac() {
     EMAIL=$1
     TOKEN=$(no_error curl $API/login/$EMAIL)
-    echo "A 6 digit access has been sent to your inbox"
-    echo -n "Code: "
+    echo "A 6 digit access code has been sent to your inbox"
+    echo -n "Access code: "
     read CODE
     TOKEN=$(no_error curl $API/login/$EMAIL/$TOKEN/$CODE)
     FILE=$DIR/sessions/$EMAIL
