@@ -2,6 +2,11 @@
 
 SCRIPT_PATH=$(dirname $BASH_SOURCE)
 SCRIPT_PATH=$(realpath $SCRIPT_PATH)
+cd $SCRIPT_PATH
+
+API="https://dash.tunel.mx/api"
+DIR=~/.tunelmx
+source tmxe
 
 panic() { 
     >&2 echo Panic: $@
@@ -10,6 +15,10 @@ panic() {
 
 no_output() {
     $@ 2>/dev/null >/dev/null
+}
+
+daemonize() {
+    sudo $@ 2>/dev/null >/dev/null </dev/null &
 }
 
 no_error() {
@@ -29,11 +38,10 @@ help() {
     echo "#use @ for empty name/network"
     echo "$this update_server <server_id> <name> <network>"
     echo "$this delete_server <server_id> <host_uuid>"
+    echo "$this start_server"
+    echo "$this stop_server"
     exit 1
 }
-
-API="https://dash.tunel.mx/api"
-DIR=~/.tunelmx
 
 require() {
     CMD=$1
@@ -42,13 +50,38 @@ require() {
 }
 
 check_deps() {
+    #also requires passwordless sudo
     no_output mkdir -p $DIR/sessions
-    no_output mkdir -p $DIR/servers
-    no_output mkdir -p $DIR/clients
-    no_output mkdir -p $DIR/tmp
     require asdf
     require curl   
-    require sed   
+    require sed
+    require wget
+    require sudo
+    require wg-quick
+    [ -f $YEICO_LINK ] || install_link
+    no_output sudo ls
+}
+
+install_link() {
+    asdf plugin-add golang || true
+    asdf install golang $GO_VERSION
+    asdf local golang $GO_VERSION
+    [ -f yeico_link-main.zip ] || wget https://yeico.com/dl/yeico_link-main.zip
+    [ -d yeico_link-main ] || unzip yeico_link-main.zip
+    cd yeico_link-main/
+    go install
+    cd ..
+}
+
+kill_pid_file() {
+    pidf=${1:-}
+    [ -n "$pidf" ] || panic Missing pid path
+    if [ -f $pidf ]
+    then
+        pid=$(cat $pidf)
+        [ -d /proc/$pid ] && no_output sudo kill $pid
+        [ -d /proc/$pid ] || no_output sudo rm -f $pidf
+    fi
 }
 
 check_default_session() {
@@ -123,23 +156,27 @@ logout() {
 
 list_servers() {
     no_error curl $API/list/$EMAIL/$TOKEN
+    echo ok
 }
 
 list_shares() {
     panic_if_arg_empty server_id $1
     SERID=${1:-0}
-    no_error curl $API/list/$EMAIL/$TOKEN/$SERID
+    RESULT=$(no_error curl $API/list/$EMAIL/$TOKEN/$SERID)
+    [ "$RESULT" != "!invalid" ] || panic $RESULT
+    echo ok
 }
 
 add_server() {
-    FILE=$DIR/tmp/server.props
+    FOLDER=$DIR/server
+    [ -d $FOLDER ] && panic Found server at $FOLDER
+    no_output mkdir -p $FOLDER
+    FILE=$FOLDER/server.props
     no_error curl $API/add/$EMAIL/$TOKEN > $FILE
     source $FILE
     sed -i '/HUUID/d' $FILE
-    FOLDER=$DIR/servers/$SERID
-    mkdir -p $FOLDER
-    mv $FILE $FOLDER/
     echo $HUUID > $FOLDER/host.uuid
+    echo ok
 }
 
 update_server() {
@@ -160,6 +197,27 @@ delete_server() {
     no_error curl $API/delete/$EMAIL/$TOKEN/$SERID/$SUUID  
 }
 
+start_server() {
+    FOLDER=$DIR/server
+    [ -d $FOLDER ] || panic Local server not found $SERID
+    [ -f $FOLDER/server.props ] || panic Local server not found $SERID
+    [ -f $FOLDER/host.uuid ] || panic Local server not found $SERID
+    [ -f $FOLDER/server.pid ] && kill_pid_file $FOLDER/server.pid
+    cp tmxe $FOLDER/
+    cp tmxs $FOLDER/
+    sed -i s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
+    daemonize $FOLDER/tmxs
+    echo "ok"
+}
+
+stop_server() {
+    FOLDER=$DIR/server
+    [ -d $FOLDER ] || panic Local server not found $SERID
+    [ -f $FOLDER/server.pid ] && kill_pid_file $FOLDER/server.pid
+    no_output sudo wg-quick down $FOLDER/server_tmx.conf || true
+    echo "ok"
+}
+
 ACTION=$1
 
 case $ACTION in
@@ -177,6 +235,11 @@ case $ACTION in
     $@
     ;;
     add_server|update_server|delete_server)
+    check_deps
+    panic_if_no_session
+    $@
+    ;;
+    start_server|stop_server)
     check_deps
     panic_if_no_session
     $@

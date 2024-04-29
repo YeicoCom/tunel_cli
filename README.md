@@ -25,5 +25,6 @@ bin/tunel add_sever
 #use @ for empty name/network
 bin/tunel update_sever <server_id> <name> <network>
 bin/tunel delete_sever <server_id> <server_suuid>
-
+bin/tunel start_sever
+bin/tunel stop_sever
 ```

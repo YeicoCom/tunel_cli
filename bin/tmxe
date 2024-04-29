@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export HOME=$HOME
+export GO_VERSION=1.22.2
+export YEICO_LINK=$HOME/.asdf/installs/golang/$GO_VERSION/packages/bin/yeico_link
+export TUNEL_WS=wss://dash.tunel.mx/link/websocket
+
+source $HOME/.asdf/asdf.sh

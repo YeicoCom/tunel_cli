@@ -1,0 +1,16 @@
+#!/bin/bash
+
+SCRIPT_PATH=$(dirname $BASH_SOURCE)
+SCRIPT_PATH=$(realpath $SCRIPT_PATH)
+cd $SCRIPT_PATH
+
+source tmxe
+
+echo $$ > client.pid
+
+while true
+do
+    echo $(date +"%Y-%m-%dT%H:%M:%S") $(hostname)
+    $YEICO_LINK -client -pwd=$HOME/.tunelmx/client -uri=$TUNEL_WS?role=client\&os=linux false
+    sleep 2
+done
