@@ -177,7 +177,7 @@ add_server() {
     FILE=$FOLDER/server.props
     no_error curl $API/add/$EMAIL/$TOKEN > $FILE
     source $FILE
-    sed -i '/HUUID/d' $FILE
+    sed -i.bak '/HUUID/d' $FILE
     echo $HUUID > $FOLDER/host.uuid
     echo ok
 }
@@ -208,7 +208,7 @@ start_server() {
     [ -f $FOLDER/server.pid ] && kill_pid_file $FOLDER/server.pid
     cp tmxe $FOLDER/
     cp tmxs $FOLDER/
-    sed -i s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
+    sed -i.bak s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
     daemonize $FOLDER/tmxs
     echo "ok"
 }
@@ -244,7 +244,7 @@ add_client() {
     FILE=$FOLDER/client.props
     no_error curl $API/start/$EMAIL/$TOKEN/$SHAID > $FILE
     source $FILE
-    sed -i '/HUUID/d' $FILE
+    sed -i.bak '/HUUID/d' $FILE
     echo $HUUID > $FOLDER/host.uuid
     echo ok
 }
@@ -263,7 +263,7 @@ start_client() {
     [ -f $FOLDER/client.pid ] && kill_pid_file $FOLDER/client.pid
     cp tmxe $FOLDER/
     cp tmxc $FOLDER/
-    sed -i s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
+    sed -i.bak s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
     daemonize $FOLDER/tmxc
     echo "ok"
 }
