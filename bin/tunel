@@ -1,0 +1,107 @@
+#!/bin/bash -e
+
+SCRIPT_PATH=$(dirname $BASH_SOURCE)
+SCRIPT_PATH=$(realpath $SCRIPT_PATH)
+
+panic() { 
+    >&2 echo Panic: $@
+    exit 1
+}
+
+no_output() {
+    $@ 2>/dev/null >/dev/null
+}
+
+no_error() {
+    $@ 2>/dev/null
+}
+
+help() {
+    this=$(basename $0)
+    echo "Usage: $this action ...args"
+    echo "$this help"
+    echo "$this sessions"
+    echo "$this login <email>"
+    echo "$this logout <email>"
+    exit 1
+}
+
+API="https://dash.tunel.mx/api"
+DIR=~/.tunelmx
+
+require() {
+    CMD=$1
+    shift
+    no_output whereis $CMD || panic "$CMD is required $@"
+}
+
+check_deps() {
+    no_output mkdir -p $DIR/sessions
+    require asdf
+    require curl   
+}
+
+check_session() {
+    EMAIL=$1
+    FILE=$DIR/sessions/$EMAIL
+    [ -f $FILE ] || return 1
+    TOKEN=$(cat $FILE)
+    RESULT=$(no_error curl $API/session/$EMAIL/$TOKEN)
+    [ "$RESULT" == "ok" ] || return 1
+    echo $EMAIL > $DIR/email
+}
+
+login_otac() {
+    EMAIL=$1
+    TOKEN=$(no_error curl $API/login/$EMAIL)
+    echo "A 6 digit access has been sent to your inbox"
+    echo -n "Code: "
+    read CODE
+    TOKEN=$(no_error curl $API/login/$EMAIL/$TOKEN/$CODE)
+    FILE=$DIR/sessions/$EMAIL
+    echo $TOKEN > $FILE
+}
+
+sessions() {
+    EMAIL=$(no_error cat $DIR/email)
+    for s in $(ls $DIR/sessions/*); do
+        s=$(basename $s)
+        [ "$EMAIL" == "$s" ] && echo -n '[x] '
+        [ "$EMAIL" == "$s" ] || echo -n '[ ] '
+        echo $s
+    done
+}
+
+login() {
+    EMAIL=$1
+    check_session $EMAIL || login_otac $EMAIL
+    check_session $EMAIL || panic Login failed
+    echo Login success
+}
+
+logout() {
+    EMAIL=$1
+    FILE=$DIR/sessions/$EMAIL
+    [ -f $FILE ] || panic Not logged in
+    TOKEN=$(cat $FILE)
+    RESULT=$(no_error curl $API/logout/$TOKEN)
+    [ "$RESULT" == "ok" ] || panic Not logged in
+    no_output rm -fr $FILE
+    echo Logout success
+}
+
+ACTION=$1
+
+case $ACTION in
+    update)
+    asdf uninstall tunel_cli main
+    asdf install tunel_cli main
+    ;;
+    sessions|login|logout)
+    check_deps
+    $@
+    ;;
+    *)
+    help $@
+    ;;
+esac
