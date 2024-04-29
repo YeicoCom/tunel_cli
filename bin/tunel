@@ -39,7 +39,7 @@ help() {
     echo "$this delete_server"
     echo "$this status_server"
     echo "$this restart_server"
-    echo "$this add_client <server_id>"
+    echo "$this start_client <server_id>"
     echo "$this delete_client"
     echo "$this status_client"
     echo "$this restart_client"
@@ -202,7 +202,7 @@ restart_server() {
     sudo systemctl restart tunel_server.service
 }
 
-add_client() {
+start_client() {
     [ -f $DIR/host.uuid ] || panic Setup first
     HUUID=$(cat $DIR/host.uuid)
     panic_if_arg_empty server_id $1
@@ -255,7 +255,7 @@ case $ACTION in
     panic_if_no_session
     $@
     ;;
-    add_client|delete_client)
+    start_client|delete_client)
     panic_if_no_session
     $@
     ;;

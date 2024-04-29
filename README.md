@@ -22,7 +22,7 @@ asdf install tunel_cli main
 asdf global tunel_cli main
 
 bin/tunel help # show usage
-bin/tunel update # self update asdf package
+bin/tunel update # self update asdf packages
 
 bin/tunel setup
 bin/tunel login <email>
@@ -34,7 +34,7 @@ bin/tunel update_server <name> <network>
 bin/tunel delete_server
 bin/tunel status_server
 bin/tunel restart_server
-bin/tunel add_client <server_id>
+bin/tunel start_client <server_id>
 bin/tunel delete_client
 bin/tunel status_client
 bin/tunel restart_client
