@@ -210,7 +210,7 @@ start_server() {
     cp tmxe $FOLDER/
     cp tmxs $FOLDER/
     sed -i.bak s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
-    daemonize bash -c $FOLDER/tmxs
+    daemonize $FOLDER/tmxs
     echo "ok"
 }
 
@@ -265,7 +265,7 @@ start_client() {
     cp tmxe $FOLDER/
     cp tmxc $FOLDER/
     sed -i.bak s,HOME=\$HOME,HOME=$HOME, $FOLDER/tmxe
-    daemonize bash -c $FOLDER/tmxc
+    daemonize $FOLDER/tmxc
     echo "ok"
 }
 
