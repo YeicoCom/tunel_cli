@@ -25,6 +25,10 @@ help() {
     echo "$this logout <email>"
     echo "$this list_servers"
     echo "$this list_shares <server_id>"
+    echo "$this add_server"
+    echo "#use @ for empty name/network"
+    echo "$this update_server <server_id> <name> <network>"
+    echo "$this delete_server <server_id> <host_uuid>"
     exit 1
 }
 
@@ -39,8 +43,12 @@ require() {
 
 check_deps() {
     no_output mkdir -p $DIR/sessions
+    no_output mkdir -p $DIR/servers
+    no_output mkdir -p $DIR/clients
+    no_output mkdir -p $DIR/tmp
     require asdf
     require curl   
+    require sed   
 }
 
 check_default_session() {
@@ -53,6 +61,13 @@ panic_if_no_session() {
     check_default_session || panic Not logged in
     EMAIL=$(cat $DIR/email)
     TOKEN=$(cat $DIR/sessions/$EMAIL)
+    echo Current session: $EMAIL
+}
+
+panic_if_arg_empty() {
+    NAME=$1
+    VALUE=$2
+    [ "$VALUE" != "" ] || panic Argument \<$NAME\> is required
 }
 
 check_session() {
@@ -87,6 +102,7 @@ sessions() {
 }
 
 login() {
+    panic_if_arg_empty email $1
     EMAIL=$1
     check_session $EMAIL || login_otac $EMAIL
     check_session $EMAIL || panic Login failed
@@ -94,6 +110,7 @@ login() {
 }
 
 logout() {
+    panic_if_arg_empty email $1
     EMAIL=$1
     FILE=$DIR/sessions/$EMAIL
     [ -f $FILE ] || panic Not logged in
@@ -105,14 +122,42 @@ logout() {
 }
 
 list_servers() {
-    echo Current session: $EMAIL
-    curl $API/list/$EMAIL/$TOKEN
+    no_error curl $API/list/$EMAIL/$TOKEN
 }
 
 list_shares() {
+    panic_if_arg_empty server_id $1
     SERID=${1:-0}
-    echo Current session: $EMAIL
-    curl $API/list/$EMAIL/$TOKEN/$SERID
+    no_error curl $API/list/$EMAIL/$TOKEN/$SERID
+}
+
+add_server() {
+    FILE=$DIR/tmp/server.props
+    no_error curl $API/add/$EMAIL/$TOKEN > $FILE
+    source $FILE
+    sed -i '/HUUID/d' $FILE
+    FOLDER=$DIR/servers/$SERID
+    mkdir -p $FOLDER
+    mv $FILE $FOLDER/
+    echo $HUUID > $FOLDER/host.uuid
+}
+
+update_server() {
+    panic_if_arg_empty server_id $1
+    panic_if_arg_empty name $2
+    panic_if_arg_empty network $3
+    SERID=${1:-0}
+    NAME=${2:-@}
+    NETWORK=${3:-@}
+    no_error curl $API/update/$EMAIL/$TOKEN/$SERID/$NAME/$NETWORK
+}
+
+delete_server() {
+    panic_if_arg_empty server_id $1
+    panic_if_arg_empty host_uuid $2
+    SERID=${1:-0}
+    SUUID=${2:-SUUID}
+    no_error curl $API/delete/$EMAIL/$TOKEN/$SERID/$SUUID  
 }
 
 ACTION=$1
@@ -127,6 +172,11 @@ case $ACTION in
     $@
     ;;
     list_servers|list_shares)
+    check_deps
+    panic_if_no_session
+    $@
+    ;;
+    add_server|update_server|delete_server)
     check_deps
     panic_if_no_session
     $@

@@ -21,5 +21,9 @@ bin/tunel login <email>
 bin/tunel logout <email>
 bin/tunel list_severs
 bin/tunel list_shares <server_id>
+bin/tunel add_sever
+#use @ for empty name/network
+bin/tunel update_sever <server_id> <name> <network>
+bin/tunel delete_sever <server_id> <server_suuid>
 
 ```
