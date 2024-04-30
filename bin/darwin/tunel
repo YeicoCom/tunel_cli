@@ -62,6 +62,7 @@ require() {
 
 check_deps() {
     no_output mkdir -p $DIR
+    require brew
     require asdf
     require curl   
     require sed
