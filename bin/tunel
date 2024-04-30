@@ -42,6 +42,7 @@ help() {
     echo "$this update"
     echo "$this login <email>"
     echo "$this logout"
+    echo "$this status"
     echo "$this list_servers"
     echo "$this add_server"
     echo "#use @ for empty name/network"
@@ -189,6 +190,10 @@ logout() {
     echo Logout success
 }
 
+status() {
+    sudo wg
+}
+
 list_servers() {
     no_error curl $API/list/$EMAIL/$SESSION
 }
@@ -279,10 +284,7 @@ case $ACTION in
     check_deps
     $@
     ;;
-    purge)
-    $@
-    ;;
-    login|logout)
+    purge|login|logout|status)
     $@
     ;;
     list_servers)

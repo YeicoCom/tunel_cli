@@ -28,6 +28,7 @@ bin/tunel setup
 bin/tunel purge
 bin/tunel login <email>
 bin/tunel logout
+bin/tunel status
 bin/tunel list_servers
 bin/tunel add_server
 #use @ for empty name/network
