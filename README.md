@@ -25,6 +25,7 @@ bin/tunel help # show usage
 bin/tunel update # self update asdf packages
 
 bin/tunel setup
+bin/tunel purge
 bin/tunel login <email>
 bin/tunel logout
 bin/tunel list_servers

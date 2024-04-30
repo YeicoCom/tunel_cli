@@ -1,5 +1,9 @@
 #!/bin/bash -e
 
+onerr() { s=$?; echo -e "\e[1;31mError on $(caller) $BASH_COMMAND"; exit $s; }
+strict() { set -uoeE pipefail; trap onerr ERR;}
+
+SELF_PATH=$(realpath $BASH_SOURCE)
 SCRIPT_PATH=$(dirname $BASH_SOURCE)
 SCRIPT_PATH=$(realpath $SCRIPT_PATH)
 cd $SCRIPT_PATH
@@ -25,11 +29,17 @@ no_error() {
     $@ 2>/dev/null
 }
 
+self_call() {
+    $SELF_PATH $@
+}
+
 help() {
-    this=$(basename $0)
+    this=$(basename $BASH_SOURCE)
     echo "Usage: $this action ...args"
     echo "$this help"
     echo "$this setup"
+    echo "$this purge"
+    echo "$this update"
     echo "$this login <email>"
     echo "$this logout"
     echo "$this list_servers"
@@ -133,9 +143,30 @@ setup() {
     sed -i.bak s,\$HOME,$HOME, $DIR/tunel_server.service
     sudo ln -sf $DIR/tunel_client.service /lib/systemd/system/
     sudo ln -sf $DIR/tunel_server.service /lib/systemd/system/
+    sudo chmod a+x $DIR/tunel_client.service $DIR/tunel_server.service
+    sudo chmod a+x $DIR/tunel_client $DIR/tunel_server
     sudo systemctl daemon-reload
-    sudo systemctl restart tunel_client.service
-    sudo systemctl restart tunel_server.service
+    no_output sudo systemctl enable tunel_client.service
+    no_output sudo systemctl enable tunel_server.service
+    no_output sudo systemctl restart tunel_client.service
+    no_output sudo systemctl restart tunel_server.service
+    echo "ok"
+}
+
+purge() {
+    no_output sudo systemctl stop tunel_client.service || true
+    no_output sudo systemctl stop tunel_server.service || true
+    no_output sudo systemctl disable tunel_client.service || true
+    no_output sudo systemctl disable tunel_server.service || true
+    [ -f $DIR/server_props.sh ] && no_output sudo bash $DIR/server_props.sh || true
+    [ -f $DIR/client_props.sh ] && no_output sudo bash $DIR/client_props.sh || true
+    no_output sudo rm -fr /lib/systemd/system/tunel_client.service
+    no_output sudo rm -fr /lib/systemd/system/tunel_server.service
+    no_output sudo systemctl daemon-reload
+    no_output self_call delete_server || true
+    no_output self_call delete_client || true
+    no_output self_call logout || true
+    no_output sudo rm -fr $DIR
     echo "ok"
 }
 
@@ -236,14 +267,19 @@ restart_client() {
 ACTION=$1
 
 case $ACTION in
+
     update)
     this=$(basename $0)
     echo '#' $this update '|' bash
     echo asdf uninstall tunel_cli main
+    echo asdf plugin update tunel_cli
     echo asdf install tunel_cli main
     ;;
     setup)
     check_deps
+    $@
+    ;;
+    purge)
     $@
     ;;
     login|logout)
