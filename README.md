@@ -13,7 +13,8 @@ asdf local tunel_cli main
 asdf local tunel_cli <commit-or-tag-or-release>
 asdf plugin remove tunel_cli
 
-#sudo apt install net-tools vim sudo build-essential git wireguard-tools unzip curl inotify-tools uuid-runtime
+#brew install fswatch nano git wireguard-tools unzip curl
+#sudo apt install net-tools nano sudo build-essential git wireguard-tools unzip curl inotify-tools uuid-runtime
 #git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.0
 #echo '. "$HOME/.asdf/asdf.sh"' >> ~/.bashrc
 #. "$HOME/.asdf/asdf.sh"
