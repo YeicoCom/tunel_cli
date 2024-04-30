@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 onerr() { s=$?; echo -e "\e[1;31mError on $(caller) $BASH_COMMAND"; exit $s; }
-strict() { set -uoeE pipefail; trap onerr ERR;}
+strict() { set -uoeE pipefail; trap onerr ERR; }
 
 SELF_PATH=$(realpath $BASH_SOURCE)
 SCRIPT_PATH=$(dirname $BASH_SOURCE)
@@ -11,6 +11,7 @@ cd $SCRIPT_PATH
 API="https://dash.tunel.mx/api"
 DIR=~/.tunelmx
 source tunel_environ
+strict
 
 panic() { 
     >&2 echo Panic: $@
@@ -285,6 +286,7 @@ case $ACTION in
     $@
     ;;
     purge|login|logout|status)
+    check_deps
     $@
     ;;
     list_servers)
