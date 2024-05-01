@@ -1,141 +1,16 @@
-#!/bin/bash -e
 
-onerr() { s=$?; echo -e "\e[1;31mError on $(caller) $BASH_COMMAND"; exit $s; }
-strict() { set -uoeE pipefail; trap onerr ERR; }
-
-SELF_PATH=$(realpath $BASH_SOURCE)
-SCRIPT_PATH=$(dirname $BASH_SOURCE)
-SCRIPT_PATH=$(realpath $SCRIPT_PATH)
-cd $SCRIPT_PATH
-
-API="https://dash.tunel.mx/api"
-DIR=~/.tunelmx
-source tunel_environ
-strict
-
-panic() { 
-    >&2 echo Panic: $@
-    exit 1
+require_specials() {
+    require_dep inotifywait
 }
 
-no_output() {
-    $@ 2>/dev/null >/dev/null
-}
-
-no_error() {
-    $@ 2>/dev/null
-}
-
-self_call() {
-    $SELF_PATH $@
-}
-
-help() {
-    this=$(basename $BASH_SOURCE)
-    echo "Usage: $this action ...args"
-    echo "$this help"
-    echo "$this setup"
-    echo "$this purge"
-    echo "$this update"
-    echo "$this login <email>"
-    echo "$this logout"
-    echo "$this status"
-    echo "$this list_servers"
-    echo "$this add_server"
-    echo "#use @ for empty name/network"
-    echo "$this update_server <name> <network>"
-    echo "$this delete_server"
-    echo "$this status_server"
-    echo "$this restart_server"
-    echo "$this start_client <server_id>"
-    echo "$this delete_client"
-    echo "$this status_client"
-    echo "$this restart_client"
-    exit 1
-}
-
-require() {
-    CMD=$1
-    shift
-    no_output which $CMD || panic "$CMD is required $@"
-}
-
-check_deps() {
-    no_output mkdir -p $DIR
-    require asdf
-    require curl   
-    require sed
-    require wget
-    require sudo
-    require unzip
-    require wg-quick
-    require inotifywait
-    require uuidgen
-    require uname
-    [ -f $YEICO_LINK ] || install_link
-    #requires passwordless sudo
-    no_output sudo ls
-}
-
-install_link() {
-    asdf plugin-add golang || true
-    asdf install golang $GO_VERSION
-    asdf local golang $GO_VERSION
-    [ -f yeico_link-main.zip ] || wget https://yeico.com/dl/yeico_link-main.zip
-    [ -d yeico_link-main ] || unzip yeico_link-main.zip
-    cd yeico_link-main/
-    go install
-    cd ..
-}
-
-kill_pid_file() {
-    pidf=${1:-}
-    [ -n "$pidf" ] || panic Missing pid path
-    if [ -f $pidf ]
-    then
-        pid=$(cat $pidf)
-        [ -d /proc/$pid ] && no_output sudo kill $pid
-        [ -d /proc/$pid ] || no_output sudo rm -f $pidf
-    fi
-}
-
-panic_if_arg_empty() {
-    NAME=$1
-    VALUE=$2
-    [ "$VALUE" != "" ] || panic Argument \<$NAME\> is required
-}
-
-check_session() {
-    [ -f $DIR/email ] || return 1
-    [ -f $DIR/session ] || return 2
-    EMAIL=$(cat $DIR/email)
-    SESSION=$(cat $DIR/session)
-    RESULT=$(no_error curl $API/session/$EMAIL/$SESSION)
-    [ "$RESULT" == "ok" ] || return 3
-}
-
-panic_if_no_session() {
-    check_session || panic Not logged in
-    echo Current session: $EMAIL
-}
-
-login_otac() {
-    EMAIL=$1
-    TOKEN=$(no_error curl $API/login/$EMAIL)
-    echo "A 6 digit access code has been sent to your inbox"
-    echo -n "Access code: "
-    read CODE
-    SESSION=$(no_error curl $API/login/$EMAIL/$TOKEN/$CODE)
-    echo $EMAIL > $DIR/email
-    echo $SESSION > $DIR/session
-}
-
-setup() {
+setup_host() {
+    install_link
+    mkdir -p $DIR
     [ -f $DIR/host.uuid ] || uuidgen > $DIR/host.uuid
     echo $VERSION $(uname -mrs) > $DIR/host.id
-    cp tunel_environ $DIR/
-    cp tunel_client tunel_client.service $DIR/
-    cp tunel_server tunel_server.service $DIR/
+    cp $OSNAME/tunel_environ $DIR/
+    cp $OSNAME/tunel_client $OSNAME/tunel_client.service $DIR/
+    cp $OSNAME/tunel_server $OSNAME/tunel_server.service $DIR/
     sed -i s,HOME=\$HOME,HOME=$HOME, $DIR/tunel_environ
     sed -i s,\$HOME,$HOME, $DIR/tunel_client.service
     sed -i s,\$HOME,$HOME, $DIR/tunel_server.service
@@ -144,87 +19,28 @@ setup() {
     sudo chmod a+x $DIR/tunel_client.service $DIR/tunel_server.service
     sudo chmod a+x $DIR/tunel_client $DIR/tunel_server
     sudo systemctl daemon-reload
-    no_output sudo systemctl enable tunel_client.service
-    no_output sudo systemctl enable tunel_server.service
-    no_output sudo systemctl restart tunel_client.service
-    no_output sudo systemctl restart tunel_server.service
+    sudo systemctl enable tunel_client.service
+    sudo systemctl enable tunel_server.service
+    sudo systemctl restart tunel_client.service
+    sudo systemctl restart tunel_server.service
     echo "ok"
 }
 
-purge() {
-    no_output sudo systemctl stop tunel_client.service || true
-    no_output sudo systemctl stop tunel_server.service || true
-    no_output sudo systemctl disable tunel_client.service || true
-    no_output sudo systemctl disable tunel_server.service || true
-    [ -f $DIR/server_props.sh ] && no_output sudo bash $DIR/server_props.sh || true
-    [ -f $DIR/client_props.sh ] && no_output sudo bash $DIR/client_props.sh || true
-    no_output sudo rm -fr /lib/systemd/system/tunel_client.service
-    no_output sudo rm -fr /lib/systemd/system/tunel_server.service
-    no_output sudo systemctl daemon-reload
-    no_output self_call delete_server || true
-    no_output self_call delete_client || true
-    no_output self_call logout || true
-    no_output sudo rm -fr $DIR
+purge_host() {
+    sudo systemctl stop tunel_client.service || true
+    sudo systemctl stop tunel_server.service || true
+    sudo systemctl disable tunel_client.service || true
+    sudo systemctl disable tunel_server.service || true
+    [ -f $DIR/server_tmx.config ] && sudo wg-quick down $DIR/server_tmx.config || true
+    [ -f $DIR/client_tmx.config ] && sudo wg-quick down $DIR/client_tmx.config || true
+    sudo rm -fr /lib/systemd/system/tunel_client.service
+    sudo rm -fr /lib/systemd/system/tunel_server.service
+    sudo systemctl daemon-reload
+    self_call remove || true
+    self_call stop || true
+    self_call logout || true
+    sudo rm -fr $DIR
     echo "ok"
-}
-
-login() {
-    panic_if_arg_empty email $1
-    EMAIL=$1
-    [ -f $DIR/email ] && [ "$EMAIL" != "$(cat $DIR/email)" ] && panic Logout first
-    check_session || login_otac $EMAIL
-    check_session || panic Login failed
-    echo Login success
-}
-
-logout() {    
-    [ -f $DIR/session ] || panic Not logged in
-    SESSION=$(cat $DIR/session)
-    RESULT=$(no_error curl $API/logout/$SESSION)
-    [ "$RESULT" == "ok" ] || panic Not logged in
-    no_output rm -fr $DIR/email
-    no_output rm -fr $DIR/session
-    echo Logout success
-}
-
-status() {
-    sudo wg
-}
-
-list_servers() {
-    no_error curl $API/list/$EMAIL/$SESSION
-}
-
-add_server() {
-    [ -f $DIR/host.uuid ] || panic Setup first
-    HUUID=$(cat $DIR/host.uuid)
-    no_error curl $API/add/$EMAIL/$SESSION/$HUUID > $DIR/server.props
-    RESULT=$(cat $DIR/server.props)
-    [ "$RESULT" != "!invalid" ] || panic $RESULT
-    source $DIR/server.props
-    echo enabled $STAMP > $DIR/server.link
-    update_server @ @
-}
-
-update_server() {
-    [ -f $DIR/server.props ] || panic Server not found
-    source $DIR/server.props
-    EMAIL=$(cat $DIR/email) #use logged user
-    panic_if_arg_empty name $1
-    panic_if_arg_empty network $2
-    NAME=${1:-@}
-    NETWORK=${2:-@}
-    [ "$NAME" == "@" ] && NAME=$(hostname)
-    no_error curl $API/update/$EMAIL/$SESSION/$SERID/$NAME/$NETWORK
-}
-
-delete_server() {
-    [ -f $DIR/server.props ] || panic Server not found
-    source $DIR/server.props
-    EMAIL=$(cat $DIR/email) #use logged user
-    HUUID=$(cat $DIR/host.uuid)
-    #no_output rm -fr $DIR/server.link #wait for reset
-    no_error curl $API/delete/$EMAIL/$SESSION/$SERID/$HUUID  
 }
 
 status_server() {
@@ -235,29 +51,6 @@ restart_server() {
     sudo systemctl restart tunel_server.service
 }
 
-start_client() {
-    [ -f $DIR/host.uuid ] || panic Setup first
-    HUUID=$(cat $DIR/host.uuid)
-    panic_if_arg_empty server_id $1
-    SHAID=$1
-    no_error curl $API/start/$EMAIL/$SESSION/$SHAID > $DIR/client.props
-    RESULT=$(cat $DIR/client.props)
-    [ "$RESULT" != "!invalid" ] || panic $RESULT
-    source $DIR/client.props
-    echo enabled $STAMP > $DIR/client.link
-    #nothing is killing the current client on a replacement
-    restart_client
-    echo ok
-}
-
-delete_client() {
-    [ -f $DIR/client.props ] || panic Client not found
-    source $DIR/client.props
-    EMAIL=$(cat $DIR/email) #use logged user
-    #no_output rm -fr $DIR/client.link #wait for reset
-    no_error curl $API/stop/$EMAIL/$SESSION/$SERID
-}
-
 status_client() {
     sudo systemctl status tunel_client.service
 }
@@ -265,45 +58,3 @@ status_client() {
 restart_client() {
     sudo systemctl restart tunel_client.service
 }
-
-ACTION=$1
-
-case $ACTION in
-
-    update)
-    this=$(basename $0)
-    echo '#' $this update '|' bash
-    echo asdf uninstall tunel_cli main
-    echo asdf plugin update tunel_cli
-    echo asdf install tunel_cli main
-    ;;
-    setup)
-    check_deps
-    $@
-    ;;
-    purge|login|logout|status)
-    check_deps
-    $@
-    ;;
-    list_servers)
-    panic_if_no_session
-    $@
-    ;;
-    add_server|update_server|delete_server)
-    panic_if_no_session
-    $@
-    ;;
-    start_client|delete_client)
-    panic_if_no_session
-    $@
-    ;;
-    status_server|status_client)
-    $@
-    ;;
-    restart_server|restart_client)
-    $@
-    ;;
-    *)
-    help $@
-    ;;
-esac

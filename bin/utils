@@ -1,0 +1,34 @@
+self_call() {
+    $(realpath $0) $@
+}
+
+no_output() {
+    $@ 2>/dev/null >/dev/null
+}
+
+no_error() {
+    $@ 2>/dev/null
+}
+
+require_dep() {
+    CMD=$1
+    shift
+    no_output which $CMD || panic "$CMD is required $@"
+}
+
+check_arg() {
+    NAME=$1
+    VALUE=$2
+    [ "$VALUE" != "" ] || panic Argument \<$NAME\> is required
+}
+
+kill_pid_file() {
+    check_arg pid_file $1
+    PID_FILE=$1
+    if [ -f $PID_FILE ]
+    then
+        PID_VAL=$(cat $PID_FILE)
+        [ -d /proc/$PID_VAL ] && sudo kill -9 $PID_VAL
+        [ -d /proc/$PID_VAL ] || sudo rm -f $PID_FILE
+    fi
+}

@@ -1,5 +1,8 @@
 # Tunel CLI
 
+- in builder set dash.tunel.mx to localhost in /etc/hosts
+- for mbair login access code is retrieved over ssh
+
 ```bash
 asdf plugin add tunel_cli https://github.com/YeicoCom/tunel_asdf.git
 asdf list all tunel_cli
@@ -37,7 +40,7 @@ bin/tunel update_server <name> <network>
 bin/tunel delete_server
 bin/tunel status_server
 bin/tunel restart_server
-bin/tunel start_client <server_id>
+bin/tunel add_client <server_id>
 bin/tunel delete_client
 bin/tunel status_client
 bin/tunel restart_client

@@ -1,9 +1,8 @@
 #!/bin/bash
 
-SCRIPT_PATH=$(dirname $BASH_SOURCE)
-SCRIPT_PATH=$(realpath $SCRIPT_PATH)
-cd $SCRIPT_PATH
-source tunel_environ
+cd $(realpath $(dirname $0))
+
+source ./tunel_environ
 
 no_output() {
     $@ 2>/dev/null >/dev/null
@@ -12,7 +11,7 @@ no_output() {
 while true
 do
     echo $(date +"%Y-%m-%dT%H:%M:%S") $(hostname)
-    no_output grep enabled server.link || inotifywait -e modify -e delete -e create $SCRIPT_PATH
-    no_output grep enabled server.link && $YEICO_LINK -client -pwd=$HOME/.tunelmx -uri=$TUNEL_WS?role=server\&os=linux false
+    grep enabled server.link || inotifywait -e modify -e delete -e create $SCRIPT_PATH
+    grep enabled server.link && $YEICO_LINK -client -pwd=$HOME/.tunelmx -uri=$TUNEL_WS?role=server\&os=linux false
     sleep 2
 done

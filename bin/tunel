@@ -1,15 +1,32 @@
-#!/bin/bash -e
+#!/bin/bash
 
-SCRIPT_PATH=$(dirname $BASH_SOURCE)
-SCRIPT_PATH=$(realpath $SCRIPT_PATH)
-cd $SCRIPT_PATH
+cd_root() { 
+    cd $(realpath $(dirname $0)) 
+}
+
+# FIXME howto to set color on macos
+error_handler() { 
+    exit_code=$?; 
+    echo "Error on $(caller) $BASH_COMMAND"; 
+    exit $exit_code; 
+}
+
+set_strict() { 
+    set -uoeE pipefail; 
+    trap error_handler ERR; 
+}
 
 panic() { 
     >&2 echo Panic: $@
     exit 1
 }
 
-export VERSION=$(cat ./version)
+cd_root
+set_strict
+
+VERSION=$(cat ./version)
+API="https://dash.tunel.mx/api"
+DIR=~/.tunelmx
 
 case "$OSTYPE" in
     darwin*)  OSNAME="darwin" ;; 
@@ -17,4 +34,26 @@ case "$OSTYPE" in
     *) panic "Unsupported OS: $OSTYPE" ;;
 esac
 
-$OSNAME/tunel $@
+source ./utils
+source ./cross
+source $OSNAME/tunel
+source $OSNAME/tunel_environ
+
+ACTION=$1
+
+case $ACTION in
+    update) require_deps; asdf_update ;;
+    setup) require_deps; setup_host ;;
+    purge) require_deps; purge_host ;;
+    login) require_setup; add_session $2 ;;
+    logout) require_session; delete_session ;;
+    status) require_session; show_status ;;
+    list) require_session; list_servers ;;
+    register) require_session; add_server ;;
+    config) require_session; update_server ;;
+    remove) require_session; delete_server ;;
+    start) require_session; add_client ;;
+    stop) require_session; delete_client ;;
+    help) show_help ;;
+    *) panic "Invalid action $ACTION" ;;
+esac

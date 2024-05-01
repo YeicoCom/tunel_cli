@@ -1,0 +1,172 @@
+
+show_help() {
+    echo "Usage: tunel action ...args      "
+    echo "    help                      - shows this help"
+    echo "    update | bash             - pipe update commands to bash"
+    echo "    setup                     - setup tunel services on this host"
+    echo "    purge                     - purge tunel services from this host"
+    echo "    status <client|server>    - show either server or client status"
+    echo "    login <email>             - login using email"
+    echo "    logout                    - remove current session "
+    echo "    list                      - list servers"
+    echo "    register                  - register current host as server"
+    echo "    config <name> <network>   - set this server's name and network"
+    echo "                              - use @ to set the name to the hostname"
+    echo "                              - use @ to clear the network value"
+    echo "    remove                    - remove this host's server"
+    echo "    start <server_id>         - start a client to a server by its id "
+    echo "    stop                      - stop the current running client"
+}
+
+asdf_update() {
+    echo asdf uninstall tunel_cli main
+    echo asdf plugin update tunel_cli
+    echo asdf install tunel_cli main    
+}
+
+require_deps() {
+    require_dep asdf
+    require_dep curl   
+    require_dep sed
+    require_dep wget
+    require_dep sudo
+    require_dep unzip
+    require_dep wg-quick
+    require_dep uuidgen
+    require_dep uname
+    require_specials
+    #FIXME how to check passwordless sudo
+}
+
+require_setup() {
+    require_deps
+    [ -f $YEICO_LINK ] || panic "Setup first"
+    [ -d $DIR ] || panic "Setup first"
+}
+
+require_session() {
+    require_setup
+    check_session || panic Not logged in
+    echo Current session: $EMAIL
+}
+
+install_link() {
+    asdf plugin add golang
+    asdf install golang $GO_VERSION
+    asdf local golang $GO_VERSION
+    [ -f yeico_link-main.zip ] || wget https://yeico.com/dl/yeico_link-main.zip
+    [ -d yeico_link-main ] || unzip yeico_link-main.zip
+    cd yeico_link-main/
+    go install
+    cd ..
+}
+
+uninstall_link() {
+    rm -f $YEICO_LINK
+}
+
+api_call_ok() {
+    CALL=$1
+    RESULT=$(no_error curl $API/$CALL)
+    [ "$?" -eq "0" ] || panic API call $CALL failed
+    [ "$RESULT" == "ok" ] || return 1
+}
+
+check_session() {
+    [ -f $DIR/email ] || return 1
+    [ -f $DIR/session ] || return 2
+    EMAIL=$(cat $DIR/email)
+    SESSION=$(cat $DIR/session)
+    api_call_ok session/$EMAIL/$SESSION
+}
+
+login_otac() {
+    EMAIL=$1
+    TOKEN=$(no_error curl $API/login/$EMAIL)
+    echo "A 6 digit access code has been sent to your inbox"
+    echo -n "Access code: "
+    read CODE
+    SESSION=$(no_error curl $API/login/$EMAIL/$TOKEN/$CODE)
+    echo $EMAIL > $DIR/email
+    echo $SESSION > $DIR/session
+}
+
+add_session() {
+    check_arg email $1
+    EMAIL=$1
+    [ -f $DIR/email ] && [ "$EMAIL" != "$(cat $DIR/email)" ] && panic Logout first
+    check_session || login_otac $EMAIL
+    check_session || panic Login failed
+    echo Login success
+}
+
+delete_session() {    
+    SESSION=$(cat $DIR/session)
+    api_call_ok logout/$SESSION
+    rm -fr $DIR/email
+    rm -fr $DIR/session
+    echo Logout success
+}
+
+list_servers() {
+    no_error curl $API/list/$EMAIL/$SESSION
+}
+
+add_server() {
+    [ -f $DIR/host.uuid ] || panic Setup first
+    HUUID=$(cat $DIR/host.uuid)
+    no_error curl $API/add/$EMAIL/$SESSION/$HUUID > $DIR/server.props
+    RESULT=$(cat $DIR/server.props)
+    [ "$RESULT" != "!invalid" ] || panic $RESULT
+    source $DIR/server.props
+    echo enabled $STAMP > $DIR/server.link
+    update_server @ @
+}
+
+update_server() {
+    [ -f $DIR/server.props ] || panic Server not found
+    source $DIR/server.props
+    EMAIL=$(cat $DIR/email) #use logged user
+    check_arg name $1
+    check_arg network $2
+    NAME=${1:-@}
+    NETWORK=${2:-@}
+    [ "$NAME" == "@" ] && NAME=$(hostname)
+    no_error curl $API/update/$EMAIL/$SESSION/$SERID/$NAME/$NETWORK
+}
+
+delete_server() {
+    [ -f $DIR/server.props ] || panic Server not found
+    source $DIR/server.props
+    EMAIL=$(cat $DIR/email) #use logged user
+    HUUID=$(cat $DIR/host.uuid)
+    #rm -fr $DIR/server.link #wait for reset
+    no_error curl $API/delete/$EMAIL/$SESSION/$SERID/$HUUID  
+}
+
+add_client() {
+    [ -f $DIR/host.uuid ] || panic Setup first
+    HUUID=$(cat $DIR/host.uuid)
+    check_arg server_id $1
+    SHAID=$1
+    no_error curl $API/start/$EMAIL/$SESSION/$SHAID > $DIR/client.props
+    RESULT=$(cat $DIR/client.props)
+    [ "$RESULT" != "!invalid" ] || panic $RESULT
+    source $DIR/client.props
+    echo enabled $STAMP > $DIR/client.link
+    #nothing is killing the current client on a replacement
+    restart_client
+    echo ok
+}
+
+delete_client() {
+    [ -f $DIR/client.props ] || panic Client not found
+    source $DIR/client.props
+    EMAIL=$(cat $DIR/email) #use logged user
+    #rm -fr $DIR/client.link #wait for reset
+    no_error curl $API/stop/$EMAIL/$SESSION/$SERID
+}
+
+status_wireguard() {
+    sudo wg
+}
