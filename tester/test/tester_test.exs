@@ -29,6 +29,13 @@ defmodule TesterTest do
     assert code == 0
   end
 
+  def nic_name(name) do
+    case System.cmd("sudo", ["cat", "/var/run/wireguard/#{name}.name"]) do
+      {stdout, 0} -> stdout |> String.trim()
+      _ -> name
+    end
+  end
+
   test "tunel happy path" do
     {stdout, code} = T.run(["wxyz"])
     assert stdout =~ "Panic: Invalid action wxyz"
@@ -133,12 +140,14 @@ defmodule TesterTest do
     assert File.read!("#{@dir}/server.link") =~ "enabled"
 
     assert T.while(10, fn ->
-      File.exists?("#{@dir}/server_tmx.conf")
-    end)
+             File.exists?("#{@dir}/server_tmx.conf")
+           end)
+
+    "server_tmx" |> nic_name() |> IO.inspect()
 
     assert T.while(10, fn ->
              {stdout, 0} = System.cmd("sudo", ["wg"])
-             String.contains?(stdout, "server_tmx")
+             String.contains?(stdout, "server_tmx" |> nic_name())
            end)
 
     {stdout, code} = T.run(["config", "TestServer", "172.24.9"])
@@ -153,7 +162,7 @@ defmodule TesterTest do
     assert stdout =~ "\tTestServer\t"
     assert code == 0
 
-    uuid1 = File.read! ("#{@dir}/host.uuid")
+    uuid1 = File.read!("#{@dir}/host.uuid")
     {uuid2, 0} = System.cmd("uuidgen", [])
     File.write!("#{@dir}/host.uuid", uuid2)
 
@@ -166,13 +175,15 @@ defmodule TesterTest do
     assert File.read!("#{@dir}/client.link") =~ "enabled"
 
     assert T.while(10, fn ->
-      File.exists?("#{@dir}/client_tmx.conf")
-    end)
+             File.exists?("#{@dir}/client_tmx.conf")
+           end)
+
+    "client_tmx" |> nic_name() |> IO.inspect()
 
     assert T.while(10, fn ->
-            {stdout, 0} = System.cmd("sudo", ["wg"])
-            String.contains?(stdout, "client_tmx")
-          end)
+             {stdout, 0} = System.cmd("sudo", ["wg"])
+             String.contains?(stdout, "client_tmx" |> nic_name())
+           end)
 
     {stdout, code} = T.run(["stop"])
     assert stdout =~ "Current session: test@tunel.mx\n"

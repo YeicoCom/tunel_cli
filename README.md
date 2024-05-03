@@ -2,6 +2,8 @@
 
 - in builder set dash.tunel.mx to localhost in /etc/hosts
 - for mbair login access code is retrieved over ssh
+- samuel@svmbair ~ % sudo ssh -i /Users/samuel/.ssh/id_ed25519 samuel@builder.quick -L 5002:localhost:5002 -L 443:localhost:443
+- 127.0.0.1 dash.tunel.mx -> /etc/hosts
 
 ```bash
 asdf plugin add tunel_cli https://github.com/YeicoCom/tunel_asdf.git

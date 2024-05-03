@@ -5,6 +5,7 @@ require_specials() {
 }
 
 setup_host() {
+    set -x
     install_link
     mkdir -p $DIR
     [ -f $DIR/host.uuid ] || uuidgen > $DIR/host.uuid
@@ -51,5 +52,5 @@ show_status() {
 control_service() {
     TYPE=$1
     ACTION=$2
-    sudo systemctl $ACTION tunel_$TYPE.service
+    sudo launchctl $ACTION mx.tunel.$TYPE
 }
