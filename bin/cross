@@ -40,8 +40,10 @@ require_deps() {
 
 require_setup() {
     require_deps
-    [ -f $YEICO_LINK ] || panic "Setup first"
     [ -d $DIR ] || panic "Setup first"
+    [ -f $DIR/host.uuid ] || panic Setup first
+    [ -f $DIR/host.id ] || panic Setup first
+    [ -f $YEICO_LINK ] || panic "Setup first"
 }
 
 require_session() {
@@ -72,6 +74,15 @@ api_call_ok() {
     [ "$RESULT" == "ok" ] || return 1
 }
 
+api_call_file() {
+    CALL=$1
+    FILE=$2
+    no_error curl $API/$CALL > $FILE
+    [ "$?" -eq "0" ] || panic API call $CALL failed
+    RESULT=$(cat $FILE)
+    [ "$RESULT" != "!invalid" ] || return 1
+}
+
 check_session() {
     [ -f $DIR/email ] || return 1
     [ -f $DIR/session ] || return 2
@@ -82,13 +93,13 @@ check_session() {
 
 login_otac() {
     EMAIL=$1
-    TOKEN=$(no_error curl $API/login/$EMAIL)
+    echo $EMAIL > $DIR/email
+    api_call_file login/$EMAIL $DIR/token
+    TOKEN=$(cat $DIR/token)
     echo "A 6 digit access code has been sent to your inbox"
     echo -n "Access code: "
     read CODE
-    SESSION=$(no_error curl $API/login/$EMAIL/$TOKEN/$CODE)
-    echo $EMAIL > $DIR/email
-    echo $SESSION > $DIR/session
+    api_call_file login/$EMAIL/$TOKEN/$CODE $DIR/session
 }
 
 add_session() {
@@ -113,11 +124,8 @@ list_servers() {
 }
 
 add_server() {
-    [ -f $DIR/host.uuid ] || panic Setup first
     HUUID=$(cat $DIR/host.uuid)
-    no_error curl $API/add/$EMAIL/$SESSION/$HUUID > $DIR/server.props
-    RESULT=$(cat $DIR/server.props)
-    [ "$RESULT" != "!invalid" ] || panic $RESULT
+    api_call_file add/$EMAIL/$SESSION/$HUUID $DIR/server.props
     source $DIR/server.props
     echo enabled $STAMP > $DIR/server.link
     update_server @ @
@@ -132,7 +140,8 @@ update_server() {
     NAME=${1:-@}
     NETWORK=${2:-@}
     [ "$NAME" == "@" ] && NAME=$(hostname)
-    no_error curl $API/update/$EMAIL/$SESSION/$SERID/$NAME/$NETWORK
+    api_call_ok update/$EMAIL/$SESSION/$SERID/$NAME/$NETWORK
+    echo ok
 }
 
 delete_server() {
@@ -140,31 +149,41 @@ delete_server() {
     source $DIR/server.props
     EMAIL=$(cat $DIR/email) #use logged user
     HUUID=$(cat $DIR/host.uuid)
-    #rm -fr $DIR/server.link #wait for reset
-    no_error curl $API/delete/$EMAIL/$SESSION/$SERID/$HUUID  
+    api_call_ok delete/$EMAIL/$SESSION/$SERID/$HUUID
+    control_service server stop
+    rm -fr $DIR/server.props
+    rm -fr $DIR/server.link
+    control_service server start
+    no_error sudo wg-quick down $DIR/server_tmx.conf
+    rm -fr $DIR/server_tmx.conf
+    echo ok
 }
 
 add_client() {
-    [ -f $DIR/host.uuid ] || panic Setup first
     HUUID=$(cat $DIR/host.uuid)
     check_arg server_id $1
     SHAID=$1
-    no_error curl $API/start/$EMAIL/$SESSION/$SHAID > $DIR/client.props
-    RESULT=$(cat $DIR/client.props)
-    [ "$RESULT" != "!invalid" ] || panic $RESULT
+    api_call_file start/$EMAIL/$SESSION/$SHAID $DIR/client.props
+    control_service client stop
     source $DIR/client.props
     echo enabled $STAMP > $DIR/client.link
-    #nothing is killing the current client on a replacement
-    restart_client
+    control_service client start
     echo ok
 }
 
 delete_client() {
+    set -x
     [ -f $DIR/client.props ] || panic Client not found
     source $DIR/client.props
     EMAIL=$(cat $DIR/email) #use logged user
-    #rm -fr $DIR/client.link #wait for reset
-    no_error curl $API/stop/$EMAIL/$SESSION/$SERID
+    api_call_ok stop/$EMAIL/$SESSION/$SERID
+    control_service client stop
+    rm -fr $DIR/client.props
+    rm -fr $DIR/client.link
+    control_service client start
+    no_error sudo wg-quick down $DIR/client_tmx.conf
+    rm -fr $DIR/client_tmx.conf
+    echo ok
 }
 
 status_wireguard() {

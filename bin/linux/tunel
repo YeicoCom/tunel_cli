@@ -31,8 +31,8 @@ purge_host() {
     sudo systemctl stop tunel_server.service || true
     sudo systemctl disable tunel_client.service || true
     sudo systemctl disable tunel_server.service || true
-    [ -f $DIR/server_tmx.config ] && sudo wg-quick down $DIR/server_tmx.config || true
-    [ -f $DIR/client_tmx.config ] && sudo wg-quick down $DIR/client_tmx.config || true
+    [ -f $DIR/server_tmx.conf ] && sudo wg-quick down $DIR/server_tmx.conf || true
+    [ -f $DIR/client_tmx.conf ] && sudo wg-quick down $DIR/client_tmx.conf || true
     sudo rm -fr /lib/systemd/system/tunel_client.service
     sudo rm -fr /lib/systemd/system/tunel_server.service
     sudo systemctl daemon-reload
@@ -43,18 +43,13 @@ purge_host() {
     echo "ok"
 }
 
-status_server() {
-    sudo systemctl status tunel_server.service
+show_status() {
+    TYPE=$1
+    control_service $TYPE status
 }
 
-restart_server() {
-    sudo systemctl restart tunel_server.service
-}
-
-status_client() {
-    sudo systemctl status tunel_client.service
-}
-
-restart_client() {
-    sudo systemctl restart tunel_client.service
+control_service() {
+    TYPE=$1
+    ACTION=$2
+    sudo systemctl $ACTION tunel_$TYPE.service
 }

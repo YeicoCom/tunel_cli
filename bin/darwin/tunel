@@ -43,20 +43,13 @@ purge_host() {
     echo "ok"
 }
 
-status_server() {
-    sudo launchctl print system/mx.tunel.server
+show_status() {
+    TYPE=$1
+    sudo launchctl print system/mx.tunel.$TYPE
 }
 
-restart_server() {
-    sudo launchctl stop mx.tunel.server || true
-    sudo launchctl start mx.tunel.server
-}
-
-status_client() {
-    sudo launchctl print system/mx.tunel.client
-}
-
-restart_client() {
-    sudo launchctl stop mx.tunel.client || true
-    sudo launchctl start mx.tunel.client
+control_service() {
+    TYPE=$1
+    ACTION=$2
+    sudo systemctl $ACTION tunel_$TYPE.service
 }

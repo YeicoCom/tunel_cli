@@ -40,20 +40,21 @@ source $OSNAME/tunel
 source $OSNAME/tunel_environ
 
 ACTION=$1
+shift 
 
 case $ACTION in
-    update) require_deps; asdf_update ;;
-    setup) require_deps; setup_host ;;
-    purge) require_deps; purge_host ;;
-    login) require_setup; add_session $2 ;;
-    logout) require_session; delete_session ;;
-    status) require_session; show_status ;;
-    list) require_session; list_servers ;;
-    register) require_session; add_server ;;
-    config) require_session; update_server ;;
-    remove) require_session; delete_server ;;
-    start) require_session; add_client ;;
-    stop) require_session; delete_client ;;
+    update) require_deps; asdf_update $@ ;;
+    setup) require_deps; setup_host $@ ;;
+    purge) require_deps; purge_host $@ ;;
+    login) require_setup; add_session $@ ;;
+    logout) require_session; delete_session $@ ;;
+    status) require_session; show_status $@ ;;
+    list) require_session; list_servers $@ ;;
+    register) require_session; add_server $@ ;;
+    config) require_session; update_server $@ ;;
+    remove) require_session; delete_server $@ ;;
+    start) require_session; add_client $@ ;;
+    stop) require_session; delete_client $@ ;;
     help) show_help ;;
     *) panic "Invalid action $ACTION" ;;
 esac

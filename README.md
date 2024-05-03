@@ -27,21 +27,4 @@ asdf global tunel_cli main
 
 bin/tunel help # show usage
 bin/tunel update # self update asdf packages
-
-bin/tunel setup
-bin/tunel purge
-bin/tunel login <email>
-bin/tunel logout
-bin/tunel status
-bin/tunel list_servers
-bin/tunel add_server
-#use @ for empty name/network
-bin/tunel update_server <name> <network>
-bin/tunel delete_server
-bin/tunel status_server
-bin/tunel restart_server
-bin/tunel add_client <server_id>
-bin/tunel delete_client
-bin/tunel status_client
-bin/tunel restart_client
 ```

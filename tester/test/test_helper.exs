@@ -1,41 +1,33 @@
 ExUnit.start()
 
-defmodule Cmd do
+defmodule T do
   def run(args) do
+    IO.inspect args
     File.cwd!()
     |> Path.join("../bin/tunel")
     |> Path.expand()
     |> System.cmd(args, stderr_to_stdout: true)
   end
 
-  def track(args, tracker) do
-    Process.flag(:trap_exit, true)
-
-    path =
-      File.cwd!()
-      |> Path.join("../bin/tunel")
-      |> Path.expand()
-
-    Port.open({:spawn_executable, path}, [:binary, args: args])
-    |> loop("", tracker)
+  def while(secs, done) do
+    with {:dl, false} <- {:dl, secs <= 0},
+         {:done, false} <- {:done, done.()} do
+      Process.sleep(1000)
+      while(secs - 1, done)
+    else
+      {:done, _} -> true
+      {:dl, _} -> false
+    end
   end
 
-  defp loop(port, stdout, tracker) do
-    receive do
-      {^port, {:data, data}} ->
-        stdout = IO.iodata_to_binary([stdout, data])
-
-        with data <- tracker.(port, stdout), false <- is_nil(data) do
-          Port.command(port, data)
-        end
-
-        loop(port, stdout, tracker)
-
-      {:EXIT, ^port, :normal} ->
-        {stdout, 0}
-
-      {:EXIT, ^port, _reason} ->
-        {stdout, 1}
-    end
+  def props(file) do
+    File.read!(file)
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn line ->
+      line = String.trim(line)
+      [key, value] = String.split(line, "=", parts: 2)
+      {key |> String.downcase() |> String.to_atom(), value |> String.trim()}
+    end)
+    |> Enum.into(%{})
   end
 end
