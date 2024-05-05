@@ -14,13 +14,13 @@ setup_host() {
     sed -i s,HOME=\$HOME,HOME=$HOME, $DIR/tunel_environ
     sed -i s,\$HOME,$HOME, $DIR/tunel_client.service
     sed -i s,\$HOME,$HOME, $DIR/tunel_server.service
-    sudo ln -sf $DIR/tunel_client.service /lib/systemd/system/
-    sudo ln -sf $DIR/tunel_server.service /lib/systemd/system/
+    no_output sudo ln -sf $DIR/tunel_client.service /lib/systemd/system/
+    no_output sudo ln -sf $DIR/tunel_server.service /lib/systemd/system/
     sudo chmod a+x $DIR/tunel_client.service $DIR/tunel_server.service
     sudo chmod a+x $DIR/tunel_client $DIR/tunel_server
     sudo systemctl daemon-reload
-    sudo systemctl enable tunel_client.service
-    sudo systemctl enable tunel_server.service
+    no_output sudo systemctl enable tunel_client.service
+    no_output sudo systemctl enable tunel_server.service
     sudo systemctl restart tunel_client.service
     sudo systemctl restart tunel_server.service
     echo "ok"
@@ -29,16 +29,16 @@ setup_host() {
 purge_host() {
     sudo systemctl stop tunel_client.service
     sudo systemctl stop tunel_server.service
-    sudo systemctl disable tunel_client.service
-    sudo systemctl disable tunel_server.service
+    no_output sudo systemctl disable tunel_client.service
+    no_output sudo systemctl disable tunel_server.service
     no_error sudo wg-quick down $DIR/server_tmx.conf || true
     no_error sudo wg-quick down $DIR/client_tmx.conf || true
     sudo rm -fr /lib/systemd/system/tunel_client.service
     sudo rm -fr /lib/systemd/system/tunel_server.service
     sudo systemctl daemon-reload
-    self_call remove || true
-    self_call stop || true
-    self_call logout || true
+    no_error self_call remove || true
+    no_error self_call stop || true
+    no_error self_call logout || true
     sudo rm -fr $DIR
     echo "ok"
 }
