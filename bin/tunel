@@ -38,7 +38,7 @@ set_strict
 
 VERSION=$(cat ./version)
 API="https://dash.tunel.mx/api"
-DIR=~/.tunelmx
+DIR=$(realpath ~/.tunelmx)
 
 case "$OSTYPE" in
     darwin*)  OSNAME="darwin" ;; 

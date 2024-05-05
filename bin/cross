@@ -149,13 +149,13 @@ delete_server() {
     source $DIR/server.props
     EMAIL=$(cat $DIR/email) #use logged user
     HUUID=$(cat $DIR/host.uuid)
-    api_call_ok delete/$EMAIL/$SESSION/$SERID/$HUUID
     control_service server stop
+    no_error sudo wg-quick down $DIR/server_tmx.conf
+    api_call_ok delete/$EMAIL/$SESSION/$SERID/$HUUID
     rm -fr $DIR/server.props
     rm -fr $DIR/server.link
-    control_service server start
-    no_error sudo wg-quick down $DIR/server_tmx.conf || true
     rm -fr $DIR/server_tmx.conf
+    control_service server start
     echo ok
 }
 
@@ -175,13 +175,13 @@ delete_client() {
     [ -f $DIR/client.props ] || panic Client not found
     source $DIR/client.props
     EMAIL=$(cat $DIR/email) #use logged user
-    api_call_ok stop/$EMAIL/$SESSION/$SERID
     control_service client stop
+    no_error sudo wg-quick down $DIR/client_tmx.conf
+    api_call_ok stop/$EMAIL/$SESSION/$SERID
     rm -fr $DIR/client.props
     rm -fr $DIR/client.link
-    control_service client start
-    no_error sudo wg-quick down $DIR/client_tmx.conf || true
     rm -fr $DIR/client_tmx.conf
+    control_service client start
     echo ok
 }
 
