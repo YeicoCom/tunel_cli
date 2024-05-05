@@ -4,6 +4,7 @@
 - macos service requires to prefix service PATH with /opt/homebrew/bin
 - api failures still show ugly stack trace instead of simple panic message
 - wg-quick down always fails from macos shell and leaves /var/run/x_tmx.conf behind, path mismatch?
+- same segment test interfaces seem to crash the macos driver leaving  /var/run/x_tmx.conf behind
 
 ## Dev Setup
 
