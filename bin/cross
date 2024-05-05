@@ -154,7 +154,7 @@ delete_server() {
     rm -fr $DIR/server.props
     rm -fr $DIR/server.link
     control_service server start
-    no_error sudo wg-quick down $DIR/server_tmx.conf
+    no_error sudo wg-quick down $DIR/server_tmx.conf || true
     rm -fr $DIR/server_tmx.conf
     echo ok
 }
@@ -180,7 +180,7 @@ delete_client() {
     rm -fr $DIR/client.props
     rm -fr $DIR/client.link
     control_service client start
-    no_error sudo wg-quick down $DIR/client_tmx.conf
+    no_error sudo wg-quick down $DIR/client_tmx.conf || true
     rm -fr $DIR/client_tmx.conf
     echo ok
 }
