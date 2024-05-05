@@ -61,7 +61,7 @@ case $ACTION in
     purge) require_dir; purge_host $@ ;;
     login) require_setup; add_session $@ ;;
     logout) require_session; delete_session $@ ;;
-    status) require_session; show_status $@ ;;
+    status) require_session; sudo wg ;;
     list) require_session; list_servers $@ ;;
     register) require_session; add_server $@ ;;
     config) require_session; update_server $@ ;;

@@ -5,7 +5,7 @@ show_help() {
     echo "    update | bash             - pipe update commands to bash"
     echo "    setup                     - setup tunel services on this host"
     echo "    purge                     - purge tunel services from this host"
-    echo "    status <client|server>    - show either server or client status"
+    echo "    status                    - shows wg status"
     echo "    login <email>             - login using email"
     echo "    logout                    - remove current session "
     echo "    list                      - list servers"
