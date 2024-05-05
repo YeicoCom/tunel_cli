@@ -57,7 +57,7 @@ shift
 case $ACTION in
     update) require_deps; asdf_update $@ ;;
     setup) require_deps; setup_host $@ ;;
-    purge) require_deps; purge_host $@ ;;
+    purge) require_dir; purge_host $@ ;;
     login) require_setup; add_session $@ ;;
     logout) require_session; delete_session $@ ;;
     status) require_session; show_status $@ ;;

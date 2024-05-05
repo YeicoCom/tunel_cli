@@ -38,9 +38,13 @@ require_deps() {
     #FIXME how to check passwordless sudo
 }
 
-require_setup() {
+require_dir() {
     require_deps
     [ -d $DIR ] || panic "Setup first"
+}
+
+require_setup() {
+    require_dir
     [ -f $DIR/host.uuid ] || panic Setup first
     [ -f $DIR/host.id ] || panic Setup first
     [ -f $YEICO_LINK ] || panic "Setup first"
