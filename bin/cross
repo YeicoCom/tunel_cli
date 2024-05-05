@@ -190,6 +190,12 @@ delete_client() {
     echo ok
 }
 
-status_wireguard() {
+show_status() {
+    [ -f $DIR/client.props ] || echo Client not found
+    [ -f $DIR/client.props ] && source $DIR/client.props
+    [ -f $DIR/client.props ] && echo Client $SERID
+    [ -f $DIR/server.props ] || echo Server not found
+    [ -f $DIR/server.props ] && source $DIR/server.props
+    [ -f $DIR/server.props ] && echo Server $SERID $SUUID
     sudo wg
 }

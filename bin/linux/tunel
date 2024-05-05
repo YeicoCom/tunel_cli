@@ -43,11 +43,6 @@ purge_host() {
     echo "ok"
 }
 
-show_status() {
-    TYPE=$1
-    control_service $TYPE status
-}
-
 control_service() {
     TYPE=$1
     ACTION=$2
