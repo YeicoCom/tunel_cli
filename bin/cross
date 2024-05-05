@@ -165,7 +165,6 @@ delete_server() {
 }
 
 add_client() {
-    [ -f $DIR/client.props ] && panic Client found
     HUUID=$(cat $DIR/host.uuid)
     check_arg server_id $1
     SHAID=$1
