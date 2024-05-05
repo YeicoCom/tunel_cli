@@ -172,7 +172,6 @@ add_client() {
 }
 
 delete_client() {
-    set -x
     [ -f $DIR/client.props ] || panic Client not found
     source $DIR/client.props
     EMAIL=$(cat $DIR/email) #use logged user
