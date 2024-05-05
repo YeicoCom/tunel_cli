@@ -24,7 +24,8 @@ error_handler() {
 }
 
 set_strict() { 
-    set -uoeE pipefail; 
+    #-u causes $1: unbound variable
+    set -oeE pipefail; 
     trap error_handler ERR; 
 }
 
