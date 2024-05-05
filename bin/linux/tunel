@@ -4,8 +4,8 @@ require_specials() {
 }
 
 setup_host() {
-    install_link
     mkdir -p $DIR
+    no_output install_link
     [ -f $DIR/host.uuid ] || uuidgen > $DIR/host.uuid
     echo $VERSION $(uname -mrs) > $DIR/host.id
     cp $OSNAME/tunel_environ $DIR/
@@ -27,12 +27,12 @@ setup_host() {
 }
 
 purge_host() {
-    sudo systemctl stop tunel_client.service || true
-    sudo systemctl stop tunel_server.service || true
-    sudo systemctl disable tunel_client.service || true
-    sudo systemctl disable tunel_server.service || true
-    [ -f $DIR/server_tmx.conf ] && sudo wg-quick down $DIR/server_tmx.conf || true
-    [ -f $DIR/client_tmx.conf ] && sudo wg-quick down $DIR/client_tmx.conf || true
+    sudo systemctl stop tunel_client.service
+    sudo systemctl stop tunel_server.service
+    sudo systemctl disable tunel_client.service
+    sudo systemctl disable tunel_server.service
+    no_error sudo wg-quick down $DIR/server_tmx.conf || true
+    no_error sudo wg-quick down $DIR/client_tmx.conf || true
     sudo rm -fr /lib/systemd/system/tunel_client.service
     sudo rm -fr /lib/systemd/system/tunel_server.service
     sudo systemctl daemon-reload

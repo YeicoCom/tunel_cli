@@ -128,6 +128,7 @@ list_servers() {
 }
 
 add_server() {
+    [ -f $DIR/server.props ] && panic Server found
     HUUID=$(cat $DIR/host.uuid)
     api_call_file add/$EMAIL/$SESSION/$HUUID $DIR/server.props
     source $DIR/server.props
@@ -154,7 +155,7 @@ delete_server() {
     EMAIL=$(cat $DIR/email) #use logged user
     HUUID=$(cat $DIR/host.uuid)
     control_service server stop
-    no_error sudo wg-quick down $DIR/server_tmx.conf
+    no_error sudo wg-quick down $DIR/server_tmx.conf || true
     api_call_ok delete/$EMAIL/$SESSION/$SERID/$HUUID
     rm -fr $DIR/server.props
     rm -fr $DIR/server.link
@@ -164,6 +165,7 @@ delete_server() {
 }
 
 add_client() {
+    [ -f $DIR/client.props ] && panic Client found
     HUUID=$(cat $DIR/host.uuid)
     check_arg server_id $1
     SHAID=$1

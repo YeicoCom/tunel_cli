@@ -1,9 +1,14 @@
 # Tunel CLI
 
-- in builder set dash.tunel.mx to localhost in /etc/hosts
-- for mbair login access code is retrieved over ssh
-- samuel@svmbair ~ % sudo ssh -i /Users/samuel/.ssh/id_ed25519 samuel@builder.quick -L 5002:localhost:5002 -L 443:localhost:443
-- 127.0.0.1 dash.tunel.mx -> /etc/hosts
+- panic won't bubble to top level from subshell
+- macos service requires to prefix service PATH with /opt/homebrew/bin
+- wg-quick down always fails from macos shell and leaves /var/run/x_tmx.conf behind, path mismatch?
+
+## Dev Setup
+
+- set dash.tunel.mx to localhost in builder:/etc/hosts
+- sudo ssh -i /Users/samuel/.ssh/id_ed25519 samuel@builder.quick -L 5002:localhost:5002 -L 443:localhost:443
+- set 127.0.0.1 dash.tunel.mx in mbair:/etc/hosts
 
 ```bash
 asdf plugin add tunel_cli https://github.com/YeicoCom/tunel_asdf.git
@@ -27,6 +32,6 @@ asdf plugin add tunel_cli https://github.com/YeicoCom/tunel_asdf.git
 asdf install tunel_cli main
 asdf global tunel_cli main
 
-bin/tunel help # show usage
-bin/tunel update # self update asdf packages
+tunel help # show usage
+tunel update # self update asdf packages
 ```

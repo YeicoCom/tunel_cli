@@ -4,14 +4,10 @@ cd $(realpath $(dirname $0))
 
 source ./tunel_environ
 
-no_output() {
-    $@ 2>/dev/null >/dev/null
-}
-
 while true
 do
     echo $(date +"%Y-%m-%dT%H:%M:%S") $(hostname)
     grep enabled client.link || fswatch --one-event $SCRIPT_PATH
-    grep enabled client.link && $YEICO_LINK -client -pwd=$HOME/.tunelmx -uri=$TUNEL_WS?role=client\&os=linux false
+    grep enabled client.link && $YEICO_LINK -client -pwd=$HOME/.tunelmx -uri=$TUNEL_WS?role=client\&os=darwin false
     sleep 2
 done

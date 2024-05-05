@@ -5,8 +5,8 @@ require_specials() {
 }
 
 setup_host() {
-    install_link
     mkdir -p $DIR
+    no_output install_link
     [ -f $DIR/host.uuid ] || uuidgen > $DIR/host.uuid
     echo $VERSION $(uname -mrs) > $DIR/host.id
     cp $OSNAME/tunel_environ $DIR/
@@ -20,25 +20,25 @@ setup_host() {
     sudo chmod a+x $DIR/tunel_client $DIR/tunel_server
     sudo launchctl load /Library/LaunchDaemons/mx.tunel.client.plist
     sudo launchctl load /Library/LaunchDaemons/mx.tunel.server.plist
-    sudo launchctl stop mx.tunel.client || true
-    sudo launchctl stop mx.tunel.server || true
+    sudo launchctl stop mx.tunel.client
+    sudo launchctl stop mx.tunel.server
     sudo launchctl start mx.tunel.client
     sudo launchctl start mx.tunel.server
     echo "ok"
 }
 
 purge_host() {
-    sudo launchctl stop mx.tunel.client || true
-    sudo launchctl stop mx.tunel.server || true
-    sudo launchctl unload /Library/LaunchDaemons/mx.tunel.client.plist || true
-    sudo launchctl unload /Library/LaunchDaemons/mx.tunel.server.plist || true
-    [ -f $DIR/server_props.sh ] && sudo bash $DIR/server_props.sh || true
-    [ -f $DIR/client_props.sh ] && sudo bash $DIR/client_props.sh || true
+    sudo launchctl stop mx.tunel.client
+    sudo launchctl stop mx.tunel.server
+    sudo launchctl unload /Library/LaunchDaemons/mx.tunel.client.plist
+    sudo launchctl unload /Library/LaunchDaemons/mx.tunel.server.plist
+    no_error sudo wg-quick down $DIR/server_tmx.conf || true
+    no_error sudo wg-quick down $DIR/client_tmx.conf || true
     sudo rm -fr /Library/LaunchDaemons/mx.tunel.client.plist
     sudo rm -fr /Library/LaunchDaemons/mx.tunel.server.plist
-    self_call remove || true
-    self_call stop || true
-    self_call logout || true
+    no_output self_call remove || true
+    no_output self_call stop || true
+    no_output self_call logout || true
     sudo rm -fr $DIR
     echo "ok"
 }
