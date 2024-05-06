@@ -181,7 +181,7 @@ delete_client() {
     source $DIR/client.props
     EMAIL=$(cat $DIR/email) #use logged user
     control_service client stop
-    no_error sudo wg-quick down $DIR/client_tmx.conf
+    no_error sudo wg-quick down $DIR/client_tmx.conf || true
     api_call_ok stop/$EMAIL/$SESSION/$SERID
     rm -fr $DIR/client.props
     rm -fr $DIR/client.link
