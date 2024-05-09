@@ -182,7 +182,9 @@ delete_client() {
     EMAIL=$(cat $DIR/email) #use logged user
     control_service client stop
     no_error sudo wg-quick down $DIR/client_tmx.conf || true
-    api_call_ok stop/$EMAIL/$SESSION/$SERID
+    #a client can always get started
+    #this fails if remotelly replaced
+    api_call_ok stop/$EMAIL/$SESSION/$SERID || true
     rm -fr $DIR/client.props
     rm -fr $DIR/client.link
     rm -fr $DIR/client_tmx.conf
