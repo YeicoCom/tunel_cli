@@ -13,6 +13,7 @@ show_help() {
     echo "    config <name> <network>   - set this server's name and network"
     echo "                              - use @ to set the name to the hostname"
     echo "                              - use @ to clear the network value"
+    echo "                              - use ^ as separator in a cidr"
     echo "    remove                    - remove this host's server"
     echo "    start <server_id>         - start a client to a server by its id "
     echo "    stop                      - stop the current running client"
