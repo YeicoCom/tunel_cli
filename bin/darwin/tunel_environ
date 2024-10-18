@@ -4,7 +4,3 @@ HOME=$HOME
 GO_VERSION=1.22.2
 YEICO_LINK=$HOME/.asdf/installs/golang/$GO_VERSION/packages/bin/yeico_link
 TUNEL_WS=wss://dash.tunel.mx/link/websocket
-#wg-quick not found unless homebrew added to path
-#wg-quick requires homebrew bash version 4
-#service PATH is missing /opt/homebrew/bin
-export PATH=/opt/homebrew/bin:$PATH

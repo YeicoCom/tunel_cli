@@ -1,10 +1,17 @@
 #!/bin/bash
 
+#wg-quick not found unless homebrew added to path
+#wg-quick requires homebrew bash version 4
+#service PATH is missing /opt/homebrew/bin
+#realpath missing in macos 12 monterrey
+export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
+
 SCRIPT_PATH=$(dirname $BASH_SOURCE)
 SCRIPT_PATH=$(realpath $SCRIPT_PATH)
 cd $SCRIPT_PATH
 
 source ./tunel_environ
+echo $PATH
 
 while true
 do

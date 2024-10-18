@@ -12,5 +12,11 @@
     <true/>
     <key>KeepAlive</key>
     <true/>
+    <key>UserName</key>
+    <string>root</string>
+    <key>StandardOutPath</key>
+    <string>$HOME/.tunelmx/tunel_client.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>$HOME/.tunelmx/tunel_client.err.log</string>
 </dict>
 </plist>
