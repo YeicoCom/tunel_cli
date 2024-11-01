@@ -1,6 +1,8 @@
 
 require_specials() {
-    require_dep brew
+    #brew not supported on macos monterrey
+    #using macports now
+    #require_dep brew
     require_dep fswatch
 }
 
