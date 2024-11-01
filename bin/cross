@@ -46,8 +46,8 @@ require_dir() {
 
 require_setup() {
     require_dir
-    [ -f $DIR/host.uuid ] || panic Setup first
-    [ -f $DIR/host.id ] || panic Setup first
+    [ -f $DIR/host.uuid ] || panic "Setup first"
+    [ -f $DIR/host.id ] || panic "Setup first"
     [ -f $YEICO_LINK ] || panic "Setup first"
 }
 

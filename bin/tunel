@@ -37,6 +37,7 @@ panic() {
 cd_root
 set_strict
 
+mkdir -p ~/.tunelmx
 VERSION=$(cat ./version)
 API="https://dash.tunel.mx/api"
 DIR=$(realpath ~/.tunelmx)
