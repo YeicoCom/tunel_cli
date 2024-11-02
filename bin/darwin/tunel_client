@@ -4,7 +4,8 @@
 #wg-quick requires homebrew bash version 4
 #service PATH is missing /opt/homebrew/bin
 #realpath missing in macos 12 monterrey
-export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
+#added /opt/local/bin to support macports on monterrey
+export PATH=/opt/local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH
 
 SCRIPT_PATH=$(dirname $BASH_SOURCE)
 SCRIPT_PATH=$(realpath $SCRIPT_PATH)
