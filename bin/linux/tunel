@@ -16,7 +16,7 @@ setup_host() {
     sed -i s,\$HOME,$HOME, $DIR/tunel_server.service
     no_output sudo ln -sf $DIR/tunel_client.service /lib/systemd/system/
     no_output sudo ln -sf $DIR/tunel_server.service /lib/systemd/system/
-    sudo chmod a+x $DIR/tunel_client.service $DIR/tunel_server.service
+    sudo chmod a-x $DIR/tunel_client.service $DIR/tunel_server.service
     sudo chmod a+x $DIR/tunel_client $DIR/tunel_server
     sudo systemctl daemon-reload
     no_output sudo systemctl enable tunel_client.service
