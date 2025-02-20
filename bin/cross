@@ -64,6 +64,7 @@ install_link() {
     [ -f yeico_link-main.zip ] || wget https://yeico.com/dl/yeico_link-main.zip
     [ -d yeico_link-main ] || unzip yeico_link-main.zip
     cd yeico_link-main/
+    echo golang $GO_VERSION > .tool-versions
     go install
     cd ..
 }
